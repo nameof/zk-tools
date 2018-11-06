@@ -5,6 +5,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ZkUtils {
@@ -36,16 +37,16 @@ public class ZkUtils {
         return zk.getChildren(path, false);
     }
 
-    public static String getMinSeqChildren(ZooKeeper zk, String prefix, String path) throws KeeperException, InterruptedException {
+    public static String getMinSeqChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> list = zk.getChildren(path, false);
         if (!list.isEmpty()) {
-            Integer min = new Integer(list.get(0).substring(prefix.length()));
-            for(String s : list){
-                Integer temp = new Integer(s.substring(7));
-                if(temp < min) min = temp;
-            }
-            return min.toString();
+            Collections.sort(list);
+            return list.get(0);
         }
         return null;
+    }
+
+    public static void delete(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
+        zk.delete(s, -1);
     }
 }

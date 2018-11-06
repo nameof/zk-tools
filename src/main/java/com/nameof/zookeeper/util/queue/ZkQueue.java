@@ -26,7 +26,7 @@ public class ZkQueue extends BaseQueue {
 
     public ZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         Preconditions.checkNotNull(queueName, "queueName null");
-        Preconditions.checkArgument(queueName.contains("/"), "queueName invalid");
+        Preconditions.checkArgument(!queueName.contains("/"), "queueName invalid");
         Preconditions.checkNotNull(connectString, "connectString null");
         Preconditions.checkNotNull(serializer, "serializer null");
 
@@ -112,12 +112,12 @@ public class ZkQueue extends BaseQueue {
         checkState();
         try {
             for(;;) {
-                String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
+                String min = ZkUtils.getMinSeqChildren(zk, queuePath);
                 if (min == null) throw new NoSuchElementException();
                 try {
                     byte[] data = zk.getData(queuePath + "/" + min, false, null);
                     Object o = serializer.deserialize(data);
-                    ZkUtils.deleteChildren(zk, queuePath + "/" + min);
+                    ZkUtils.delete(zk, queuePath + "/" + min);
                     return o;
                 } catch (KeeperException.NoNodeException ignore) { }
             }
@@ -130,12 +130,12 @@ public class ZkQueue extends BaseQueue {
         checkState();
         try {
             for(;;) {
-                String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
+                String min = ZkUtils.getMinSeqChildren(zk, queuePath);
                 if (min == null) return null;
                 try {
                     byte[] data = zk.getData(queuePath + "/" + min, false, null);
                     Object o = serializer.deserialize(data);
-                    ZkUtils.deleteChildren(zk, queuePath + "/" + min);
+                    ZkUtils.delete(zk, queuePath + "/" + min);
                     return o;
                 } catch (KeeperException.NoNodeException ignore) { }
             }
@@ -147,7 +147,7 @@ public class ZkQueue extends BaseQueue {
     public Object element() {
         checkState();
         try {
-            String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
+            String min = ZkUtils.getMinSeqChildren(zk, queuePath);
             if (min == null) throw new NoSuchElementException();
             byte[] data = zk.getData(queuePath + "/" + min, false, null);
             return serializer.deserialize(data);
@@ -159,7 +159,7 @@ public class ZkQueue extends BaseQueue {
     public Object peek() {
         checkState();
         try {
-            String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
+            String min = ZkUtils.getMinSeqChildren(zk, queuePath);
             if (min == null) return null;
             byte[] data = zk.getData(queuePath + "/" + min, false, null);
             return serializer.deserialize(data);
