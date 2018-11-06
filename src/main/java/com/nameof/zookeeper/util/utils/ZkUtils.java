@@ -33,10 +33,6 @@ public class ZkUtils {
         }
     }
 
-    public static List<String> getChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
-        return zk.getChildren(path, false);
-    }
-
     public static String getMinSeqChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> list = zk.getChildren(path, false);
         if (!list.isEmpty()) {

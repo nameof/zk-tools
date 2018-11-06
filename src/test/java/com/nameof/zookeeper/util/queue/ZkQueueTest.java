@@ -31,6 +31,8 @@ public class ZkQueueTest {
         System.out.println(zkQueue.size());
         zkQueue.add(null);
         System.out.println(zkQueue.size());
+        System.out.println(zkQueue.offer(null));
+        System.out.println(zkQueue.size());
     }
 
     @Test
