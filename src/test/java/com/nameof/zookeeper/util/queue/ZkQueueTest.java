@@ -16,12 +16,12 @@ public class ZkQueueTest {
         zkQueue = new ZkQueue("simple", "172.16.98.129", new Serializer() {
             @Override
             public byte[] serialize(Object obj) {
-                return new byte[0];
+                return obj.toString().getBytes();
             }
 
             @Override
             public Object deserialize(byte[] bytes) {
-                return null;
+                return new String(bytes);
             }
         });
     }
@@ -29,9 +29,9 @@ public class ZkQueueTest {
     @Test
     public void testAdd() {
         System.out.println(zkQueue.size());
-        zkQueue.add(null);
+        zkQueue.add("a");
         System.out.println(zkQueue.size());
-        System.out.println(zkQueue.offer(null));
+        System.out.println(zkQueue.offer("b"));
         System.out.println(zkQueue.size());
     }
 
@@ -42,5 +42,13 @@ public class ZkQueueTest {
         System.out.println(zkQueue.size());
         System.out.println(zkQueue.remove());
         System.out.println(zkQueue.size());
+    }
+
+    @Test
+    public void testToArray() {
+        zkQueue.clear();
+        zkQueue.add("avc");
+        System.out.println(zkQueue.toArray()[0]);
+        System.out.println(zkQueue.toArray(new String[0])[0]);
     }
 }

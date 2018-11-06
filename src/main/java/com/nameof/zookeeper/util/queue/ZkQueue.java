@@ -8,6 +8,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
@@ -55,6 +56,7 @@ public class ZkQueue extends BaseQueue {
         ZkUtils.createPersist(zk, queuePath);
     }
 
+    @Override
     public int size() {
         checkState();
         try {
@@ -64,15 +66,12 @@ public class ZkQueue extends BaseQueue {
         }
     }
 
+    @Override
     public boolean isEmpty() {
-        checkState();
-        try {
-            return this.size() == 0;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return this.size() == 0;
     }
 
+    @Override
     public boolean add(Object o) {
         checkState();
         try {
@@ -85,14 +84,13 @@ public class ZkQueue extends BaseQueue {
 
     @Override
     public boolean addAll(Collection<?> c) {
-        checkState();
-        for (Object o:
-             c) {
+        for (Object o: c) {
             this.add(o);
         }
         return true;
     }
 
+    @Override
     public void clear() {
         checkState();
         try {
@@ -102,12 +100,13 @@ public class ZkQueue extends BaseQueue {
         }
     }
 
+    @Override
     public boolean offer(Object o) {
-        checkState();
         this.add(o);
         return true;
     }
 
+    @Override
     public Object remove() {
         checkState();
         try {
@@ -126,6 +125,7 @@ public class ZkQueue extends BaseQueue {
         }
     }
 
+    @Override
     public Object poll() {
         checkState();
         try {
@@ -144,6 +144,7 @@ public class ZkQueue extends BaseQueue {
         }
     }
 
+    @Override
     public Object element() {
         checkState();
         try {
@@ -156,6 +157,7 @@ public class ZkQueue extends BaseQueue {
         }
     }
 
+    @Override
     public Object peek() {
         checkState();
         try {
@@ -166,6 +168,27 @@ public class ZkQueue extends BaseQueue {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Object[] toArray() {
+        checkState();
+        try {
+            return ZkUtils.getAllChildrenData(zk, queuePath, serializer).toArray();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        Object[] objs = this.toArray();
+        if (a.length < objs.length)
+            return Arrays.copyOf(objs, objs.length, (Class<? extends T[]>) a.getClass());
+        System.arraycopy(objs, 0, a, 0, objs.length);
+        if (a.length > objs.length)
+            a[objs.length] = null;
+        return a;
     }
 
     private void checkState() {

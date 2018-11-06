@@ -1,5 +1,7 @@
 package com.nameof.zookeeper.util.utils;
 
+import com.google.common.collect.Lists;
+import com.nameof.zookeeper.util.queue.Serializer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -44,5 +46,19 @@ public class ZkUtils {
 
     public static void delete(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
         zk.delete(s, -1);
+    }
+
+    public static List<Object> getAllChildrenData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
+        List<String> list = zk.getChildren(path, false);
+        List<Object> objs = Lists.newArrayListWithCapacity(list.size());
+        for (String s: list) {
+            try {
+                byte[] data = zk.getData(path + "/" + s, false, null);
+                objs.add(serializer.deserialize(data));
+            } catch (KeeperException.NoNodeException e) {
+                continue;
+            }
+        }
+        return objs;
     }
 }

@@ -6,34 +6,37 @@ import java.util.Queue;
 
 public abstract class BaseQueue implements Queue<Object> {
 
+    @Override
     public boolean contains(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean containsAll(Collection c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean remove(Object o) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Iterator iterator() {
         throw new UnsupportedOperationException();
     }
 
-    public Object[] toArray() {
+    @Override
+    public <T> T[] toArray(T[] a) {
         throw new UnsupportedOperationException();
     }
 
-    public Object[] toArray(Object[] a) {
-        throw new UnsupportedOperationException();
-    }
-
+    @Override
     public boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean removeAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }
