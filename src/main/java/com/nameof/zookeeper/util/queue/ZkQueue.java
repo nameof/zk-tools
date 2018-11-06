@@ -22,6 +22,8 @@ public class ZkQueue extends BaseQueue {
 
     private ZooKeeper zk;
 
+    private volatile Watcher.Event.KeeperState zkState;
+
     public ZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         Preconditions.checkNotNull(queueName, "queueName null");
         Preconditions.checkArgument(queueName.contains("/"), "queueName invalid");
@@ -35,7 +37,8 @@ public class ZkQueue extends BaseQueue {
         zk = new ZooKeeper(connectString, 10_000, new Watcher() {
             @Override
             public void process(WatchedEvent event) {
-                if (event.getState() == Event.KeeperState.SyncConnected) {
+                if (event.getType() == Event.EventType.None) {
+                    ZkQueue.this.zkState = event.getState();
                     cdl.countDown();
                 }
             }
@@ -47,11 +50,13 @@ public class ZkQueue extends BaseQueue {
             throw e;
         }
 
+        checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
         ZkUtils.createPersist(zk, queuePath);
     }
 
     public int size() {
+        checkState();
         try {
             return zk.getChildren(queuePath, null).size();
         } catch (Exception e) {
@@ -60,6 +65,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public boolean isEmpty() {
+        checkState();
         try {
             return this.size() == 0;
         } catch (Exception e) {
@@ -68,6 +74,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public boolean add(Object o) {
+        checkState();
         try {
             ZkUtils.crecatePersistSeq(zk, queuePath + "/", serializer.serialize(o));
             return true;
@@ -78,6 +85,7 @@ public class ZkQueue extends BaseQueue {
 
     @Override
     public boolean addAll(Collection<?> c) {
+        checkState();
         for (Object o:
              c) {
             this.add(o);
@@ -86,6 +94,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public void clear() {
+        checkState();
         try {
             ZkUtils.deleteChildren(zk, queuePath);
         } catch (Exception e) {
@@ -94,11 +103,13 @@ public class ZkQueue extends BaseQueue {
     }
 
     public boolean offer(Object o) {
+        checkState();
         this.add(o);
         return true;
     }
 
     public Object remove() {
+        checkState();
         try {
             for(;;) {
                 String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
@@ -116,6 +127,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public Object poll() {
+        checkState();
         try {
             for(;;) {
                 String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
@@ -133,6 +145,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public Object element() {
+        checkState();
         try {
             String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
             if (min == null) throw new NoSuchElementException();
@@ -144,6 +157,7 @@ public class ZkQueue extends BaseQueue {
     }
 
     public Object peek() {
+        checkState();
         try {
             String min = ZkUtils.getMinSeqChildren(zk, "", queuePath);
             if (min == null) return null;
@@ -151,6 +165,17 @@ public class ZkQueue extends BaseQueue {
             return serializer.deserialize(data);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void checkState() {
+        switch(zkState) {
+            case SyncConnected:
+                return;
+            case Expired:
+                //create new client ?
+            default:
+                throw new IllegalStateException("zookeeper state : " + zkState);
         }
     }
 }
