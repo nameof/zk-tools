@@ -27,11 +27,6 @@ public abstract class BaseQueue implements Queue<Object> {
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean retainAll(Collection<?> c) {
         throw new UnsupportedOperationException();
     }

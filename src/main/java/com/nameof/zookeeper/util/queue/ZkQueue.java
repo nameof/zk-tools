@@ -13,6 +13,9 @@ import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * 无界非阻塞队列
+ */
 public class ZkQueue extends BaseQueue {
 
     private static final String NAMESPACE = "/zkqueue";
