@@ -96,6 +96,11 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         while ((o = poll()) == null) {
             CountDownLatch cdl = new CountDownLatch(1);
             EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
+            try {
+                zk.getChildren(queuePath, elw);
+            } catch (KeeperException e) {
+                throw new RuntimeException(e);
+            }
             cdl.await();
         }
         return o;
@@ -112,6 +117,11 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         while ((o = poll()) == null && waitMillis > 0) {
             CountDownLatch cdl = new CountDownLatch(1);
             EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
+            try {
+                zk.getChildren(queuePath, elw);
+            } catch (KeeperException e) {
+                throw new RuntimeException(e);
+            }
             cdl.await(waitMillis, TimeUnit.MILLISECONDS);
             end = System.currentTimeMillis();
             waitMillis = total - (end - start);
