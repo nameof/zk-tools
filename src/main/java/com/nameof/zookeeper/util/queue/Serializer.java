@@ -1,5 +1,8 @@
 package com.nameof.zookeeper.util.queue;
 
+/**
+ * @author chengpan
+ */
 public interface Serializer {
     /**
      * @param obj 可为null

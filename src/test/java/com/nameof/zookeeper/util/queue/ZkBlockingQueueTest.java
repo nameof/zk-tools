@@ -6,10 +6,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author chengpan
+ */
 public class ZkBlockingQueueTest {
     private BlockingQueue<Object> zkQueue;
 

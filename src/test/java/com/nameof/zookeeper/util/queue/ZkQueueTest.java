@@ -7,6 +7,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Queue;
 
+/**
+ * @author chengpan
+ */
 public class ZkQueueTest {
 
     private Queue<Object> zkQueue;
