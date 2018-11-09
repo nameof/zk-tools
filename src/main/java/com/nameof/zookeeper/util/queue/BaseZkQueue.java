@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 /**
+ * TODO API异常、参数等标准实现
  * 基于zookeeper实现的基本无界队列
  * @author chengpan
  */
@@ -60,13 +61,7 @@ public abstract class BaseZkQueue implements Queue<Object> {
 
     @Override
     public boolean add(Object o) {
-        checkState();
-        try {
-            ZkUtils.crecatePersistSeq(zk, queuePath + "/", serializer.serialize(o));
-            return true;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return offer(o);
     }
 
     @Override
@@ -79,8 +74,13 @@ public abstract class BaseZkQueue implements Queue<Object> {
 
     @Override
     public boolean offer(Object o) {
-        this.add(o);
-        return true;
+        checkState();
+        try {
+            ZkUtils.crecatePersistSeq(zk, queuePath + "/", serializer.serialize(o));
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

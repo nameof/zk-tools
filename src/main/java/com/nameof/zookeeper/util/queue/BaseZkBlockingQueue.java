@@ -15,9 +15,4 @@ public abstract class BaseZkBlockingQueue extends BaseZkQueue implements Blockin
     public BaseZkBlockingQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         super(queueName, connectString, serializer);
     }
-
-    @Override
-    public int remainingCapacity() {
-        return Integer.MAX_VALUE;
-    }
 }

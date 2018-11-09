@@ -23,6 +23,11 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         super(queueName, connectString, serializer);
     }
 
+    @Override
+    public int remainingCapacity() {
+        return Integer.MAX_VALUE;
+    }
+
     /**
      * never blocking
      * @param o
@@ -58,14 +63,7 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
     public Object take() throws InterruptedException {
         Object o = null;
         while ((o = poll()) == null) {
-            CountDownLatch cdl = new CountDownLatch(1);
-            EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
-            try {
-                zk.getChildren(queuePath, elw);
-            } catch (KeeperException e) {
-                throw new RuntimeException(e);
-            }
-            cdl.await();
+            waitChildren();
         }
         return o;
     }
@@ -75,20 +73,11 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         checkState();
         long total = unit.toMillis(timeout);
         long start = System.currentTimeMillis();
-        long end = System.currentTimeMillis();
-        long waitMillis = total - (end - start);
+        long waitMillis = total - (System.currentTimeMillis() - start);
         Object o = null;
         while ((o = poll()) == null && waitMillis > 0) {
-            CountDownLatch cdl = new CountDownLatch(1);
-            EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
-            try {
-                zk.getChildren(queuePath, elw);
-            } catch (KeeperException e) {
-                throw new RuntimeException(e);
-            }
-            cdl.await(waitMillis, TimeUnit.MILLISECONDS);
-            end = System.currentTimeMillis();
-            waitMillis = total - (end - start);
+            waitChildren(waitMillis, TimeUnit.MILLISECONDS);
+            waitMillis = total - (System.currentTimeMillis() - start);
         }
         return o;
     }
@@ -117,7 +106,31 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         }
     }
 
-    private static class EventLatchWatcher implements Watcher {
+    /**
+     * 阻塞，等待{@link #queuePath} 上的 {@link org.apache.zookeeper.Watcher.Event.EventType.NodeChildrenChanged} 事件发生
+     * @param timeout
+     * @param unit
+     * @throws InterruptedException
+     */
+    protected void waitChildren(long timeout, TimeUnit unit) throws InterruptedException {
+        CountDownLatch cdl = new CountDownLatch(1);
+        EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
+        try {
+            zk.getChildren(queuePath, elw);
+        } catch (KeeperException e) {
+            throw new RuntimeException(e);
+        }
+        if (timeout == -1 && unit == null)
+            cdl.await();
+        else
+            cdl.await(timeout, unit);
+    }
+
+    protected void waitChildren() throws InterruptedException {
+        waitChildren(-1, null);
+    }
+
+    protected static class EventLatchWatcher implements Watcher {
 
         private final Event.EventType type;
         private final CountDownLatch cdl;

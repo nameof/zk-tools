@@ -5,14 +5,14 @@ package com.nameof.zookeeper.util.queue;
  */
 public interface Serializer {
     /**
-     * @param obj 可为null
-     * @return 当输入参数为null时，返回null
+     * @param obj 不允许null
+     * @return
      */
     byte[] serialize(Object obj);
 
     /**
-     * @param bytes 可为null
-     * @return 当输入参数为null时，返回null
+     * @param bytes 不允许null
+     * @return
      */
     Object deserialize(byte[] bytes);
 }
