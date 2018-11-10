@@ -35,6 +35,7 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
      */
     @Override
     public void put(Object o) throws InterruptedException {
+        Preconditions.checkNotNull(o);
         checkState();
         try {
             ZkUtils.crecatePersistSeq(zk, queuePath + "/", serializer.serialize(o));
@@ -84,6 +85,7 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
 
     @Override
     public int drainTo(Collection<? super Object> c) {
+        checkDrainToArgs(c);
         checkState();
         try {
             List<Object> all = ZkUtils.takeAllChildrenData(zk, queuePath, serializer);
@@ -96,6 +98,7 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
 
     @Override
     public int drainTo(Collection<? super Object> c, int maxElements) {
+        checkDrainToArgs(c);
         checkState();
         try {
             List<Object> all = ZkUtils.takeAllChildrenData(zk, queuePath, serializer, maxElements);
@@ -104,6 +107,11 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void checkDrainToArgs(Collection<? super Object> c) {
+        Preconditions.checkNotNull(c);
+        Preconditions.checkArgument(c != this, "the specified collection is this queue");
     }
 
     /**
