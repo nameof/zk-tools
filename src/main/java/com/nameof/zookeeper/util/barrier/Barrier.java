@@ -5,6 +5,17 @@ package com.nameof.zookeeper.util.barrier;
  * @Date: 2018/11/8
  */
 public interface Barrier {
-    void enter() throws Exception;
-    void leave() throws Exception;
+    /**
+     *
+     * @return 重复enter则返回false
+     * @throws Exception
+     */
+    boolean enter() throws Exception;
+
+    /**
+     *
+     * @return 尚未enter或已leave则返回false
+     * @throws Exception
+     */
+    boolean leave() throws Exception;
 }
