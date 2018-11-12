@@ -1,16 +1,36 @@
 package com.nameof.zookeeper.util.utils;
 
 import com.google.common.collect.Lists;
+import com.nameof.zookeeper.util.barrier.ZkBarrier;
 import com.nameof.zookeeper.util.queue.Serializer;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class ZkUtils {
+
+    public static ZooKeeper createSync(String zkQuorum, Watcher watcher) throws InterruptedException, IOException {
+        CountDownLatch cdl = new CountDownLatch(1);
+        ZooKeeper zk = new ZooKeeper(zkQuorum, 10_000, new Watcher() {
+            @Override
+            public void process(WatchedEvent event) {
+                if (watcher != null)
+                    watcher.process(event);
+                cdl.countDown();
+            }
+        });
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
+            zk.close();
+            throw e;
+        }
+        return zk;
+    }
+
     public static void createPersist(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         if (zk.exists(path, false) == null) {
             try {

@@ -1,6 +1,7 @@
 package com.nameof.zookeeper.util.queue;
 
 import com.google.common.base.Preconditions;
+import com.nameof.zookeeper.util.common.ZkContext;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -15,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
  * 基于zookeeper实现的基本无界队列
  * @author chengpan
  */
-public abstract class BaseZkQueue implements Queue<Object> {
+public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Watcher {
 
     protected static final String NAMESPACE = "/zkqueue";
 
@@ -23,35 +24,15 @@ public abstract class BaseZkQueue implements Queue<Object> {
 
     protected String queuePath;
 
-    protected ZooKeeper zk;
-
-    protected volatile Watcher.Event.KeeperState zkState;
-
     public BaseZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
+        super(connectString);
+
         Preconditions.checkNotNull(queueName, "queueName null");
         Preconditions.checkArgument(!queueName.contains("/"), "queueName invalid");
-        Preconditions.checkNotNull(connectString, "connectString null");
         Preconditions.checkNotNull(serializer, "serializer null");
 
         this.queuePath = NAMESPACE + "/" + queueName;
         this.serializer = serializer;
-
-        CountDownLatch cdl = new CountDownLatch(1);
-        zk = new ZooKeeper(connectString, 10_000, new Watcher() {
-            @Override
-            public void process(WatchedEvent event) {
-                if (event.getType() == Event.EventType.None) {
-                    BaseZkQueue.this.zkState = event.getState();
-                    cdl.countDown();
-                }
-            }
-        });
-        try {
-            cdl.await();
-        } catch (InterruptedException e) {
-            zk.close();
-            throw e;
-        }
 
         checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
@@ -192,17 +173,6 @@ public abstract class BaseZkQueue implements Queue<Object> {
             return serializer.deserialize(data);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    protected void checkState() {
-        switch(zkState) {
-            case SyncConnected:
-                return;
-            case Expired:
-                //create new client ?
-            default:
-                throw new IllegalStateException("zookeeper state : " + zkState);
         }
     }
 
