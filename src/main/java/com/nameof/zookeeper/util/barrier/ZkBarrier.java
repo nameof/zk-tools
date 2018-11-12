@@ -13,9 +13,10 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * zookeeper官方的Barrier代码示例存在几个BUG，可能导致客户端永久阻塞：<br/>
- *     1) 使用Object.wait , notify机制唤醒客户端，https://issues.apache.org/jira/browse/ZOOKEEPER-3186，这里使用CountDownLatch替代<br/>
- *     2) enter和leave的事件通知竞态产生的ABA问题，https://issues.apache.org/jira/browse/ZOOKEEPER-1011，通过ready节点解决<br/><br/>
+ * <p>zookeeper官方的Barrier代码示例存在几个BUG，可能导致客户端永久阻塞：
+ *     <p>1) 使用Object.wait , notify机制唤醒客户端，https://issues.apache.org/jira/browse/ZOOKEEPER-3186，这里使用CountDownLatch替代
+ *     <p>2) enter和leave的事件通知竞态产生的ABA问题，https://issues.apache.org/jira/browse/ZOOKEEPER-1011，通过ready节点解决
+ * <p><p>thread-safe
  * @Author: chengpan
  * @Date: 2018/11/8
  */
@@ -34,15 +35,22 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     public ZkBarrier(String barrierName, String connectString, int size) throws IOException, InterruptedException, KeeperException {
         super(connectString);
-
-        Preconditions.checkNotNull(barrierName, "barrierName null");
-        Preconditions.checkArgument(!barrierName.contains("/"), "barrierName invalid");
-        Preconditions.checkNotNull(size > 0, "size invalid");
+        checkArgs(barrierName, size);
 
         this.barrierPath = NAMESPACE + "/" + barrierName;
         this.barrierReadyPath = NAMESPACE + "/" + barrierName + "_ready";
         this.size = size;
 
+        init();
+    }
+
+    private void checkArgs(String barrierName, int size) {
+        Preconditions.checkNotNull(barrierName, "barrierName null");
+        Preconditions.checkArgument(!barrierName.contains("/"), "barrierName invalid");
+        Preconditions.checkNotNull(size > 0, "size invalid");
+    }
+
+    private void init() throws KeeperException, InterruptedException {
         checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
         ZkUtils.createPersist(zk, barrierPath);
@@ -50,12 +58,26 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     @Override
     public synchronized boolean enter() throws Exception {
+        checkState();
+
         try {
-            zk.create(barrierPath + "/" + nodeName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+            zk.create(barrierPath + "/" + nodeName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         } catch (KeeperException.NodeExistsException e) {
             return false;
         }
-        if (zk.exists(barrierReadyPath, new Watcher() {
+
+        if (ready()) return true;
+
+        List<String> list = zk.getChildren(barrierPath, false);
+        while (!allReady.get() && list.size() < size) {
+            wait();
+        }
+        ZkUtils.createPersist(zk, barrierReadyPath);
+        return true;
+    }
+
+    private boolean ready() throws KeeperException, InterruptedException {
+        return zk.exists(barrierReadyPath, new Watcher() {
             @Override
             public void process(WatchedEvent event) {
                 allReady.set(true);
@@ -63,18 +85,13 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
                     notifyAll();
                 }
             }
-        }) != null) return true;
-
-        List<String> list = zk.getChildren(barrierPath, false);
-        while (list.size() < size && !allReady.get()) {
-            wait();
-        }
-        ZkUtils.createPersist(zk, barrierReadyPath);
-        return true;
+        }) != null;
     }
 
     @Override
-    public boolean leave() throws Exception {
+    public synchronized boolean leave() throws Exception {
+        checkState();
+
         try {
             zk.delete(barrierPath + "/" + nodeName, -1);
         } catch (KeeperException.NoNodeException e) {
@@ -96,6 +113,8 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     private void cleanup() throws KeeperException, InterruptedException {
         try {
             zk.delete(barrierReadyPath, -1);
-        } catch (KeeperException.NoNodeException ignore) { }
+        } catch (KeeperException.NoNodeException ignore) { } finally {
+            allReady.set(false);
+        }
     }
 }

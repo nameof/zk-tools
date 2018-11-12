@@ -55,6 +55,19 @@ public class ZkUtils {
         }
     }
 
+    public static Object getData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
+        byte[] data = zk.getData(path, false, null);
+        Object o = serializer.deserialize(data);
+        return o;
+    }
+
+    public static Object getDataAndDelete(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
+        byte[] data = zk.getData(path, false, null);
+        Object o = serializer.deserialize(data);
+        ZkUtils.delete(zk, path);
+        return o;
+    }
+
     public static String getMinSeqChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> list = zk.getChildren(path, false);
         if (!list.isEmpty()) {

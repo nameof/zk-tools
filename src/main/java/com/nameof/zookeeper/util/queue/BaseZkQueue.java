@@ -26,14 +26,19 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
 
     public BaseZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         super(connectString);
+        checkArgs(queueName, serializer);
+        this.queuePath = NAMESPACE + "/" + queueName;
+        this.serializer = serializer;
+        init();
+    }
 
+    private void checkArgs(String queueName, Serializer serializer) {
         Preconditions.checkNotNull(queueName, "queueName null");
         Preconditions.checkArgument(!queueName.contains("/"), "queueName invalid");
         Preconditions.checkNotNull(serializer, "serializer null");
+    }
 
-        this.queuePath = NAMESPACE + "/" + queueName;
-        this.serializer = serializer;
-
+    private void init() throws KeeperException, InterruptedException {
         checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
         ZkUtils.createPersist(zk, queuePath);
@@ -120,10 +125,7 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
                 String min = ZkUtils.getMinSeqChildren(zk, queuePath);
                 if (min == null) throw new NoSuchElementException();
                 try {
-                    byte[] data = zk.getData(queuePath + "/" + min, false, null);
-                    Object o = serializer.deserialize(data);
-                    ZkUtils.delete(zk, queuePath + "/" + min);
-                    return o;
+                    return ZkUtils.getDataAndDelete(zk, queuePath + "/" + min, serializer);
                 } catch (KeeperException.NoNodeException ignore) { }
             }
         } catch (Exception e) {
@@ -139,10 +141,7 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
                 String min = ZkUtils.getMinSeqChildren(zk, queuePath);
                 if (min == null) return null;
                 try {
-                    byte[] data = zk.getData(queuePath + "/" + min, false, null);
-                    Object o = serializer.deserialize(data);
-                    ZkUtils.delete(zk, queuePath + "/" + min);
-                    return o;
+                    return ZkUtils.getDataAndDelete(zk, queuePath + "/" + min, serializer);
                 } catch (KeeperException.NoNodeException ignore) { }
             }
         } catch (Exception e) {
@@ -156,8 +155,7 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
         try {
             String min = ZkUtils.getMinSeqChildren(zk, queuePath);
             if (min == null) throw new NoSuchElementException();
-            byte[] data = zk.getData(queuePath + "/" + min, false, null);
-            return serializer.deserialize(data);
+            return ZkUtils.getData(zk, queuePath + "/" + min, serializer);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -169,8 +167,7 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
         try {
             String min = ZkUtils.getMinSeqChildren(zk, queuePath);
             if (min == null) return null;
-            byte[] data = zk.getData(queuePath + "/" + min, false, null);
-            return serializer.deserialize(data);
+            return ZkUtils.getData(zk, queuePath + "/" + min, serializer);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -137,21 +137,4 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
     protected void waitChildren() throws InterruptedException {
         waitChildren(-1, null);
     }
-
-    protected static class EventLatchWatcher implements Watcher {
-
-        private final Event.EventType type;
-        private final CountDownLatch cdl;
-
-        public EventLatchWatcher(Event.EventType type, CountDownLatch cdl) {
-            this.type = type;
-            this.cdl = cdl;
-        }
-
-        @Override
-        public void process(WatchedEvent event) {
-            if (event.getType() == type)
-                cdl.countDown();
-        }
-    }
 }
