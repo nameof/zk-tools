@@ -1,7 +1,6 @@
 package com.nameof.zookeeper.util.utils;
 
 import com.google.common.collect.Lists;
-import com.nameof.zookeeper.util.barrier.ZkBarrier;
 import com.nameof.zookeeper.util.queue.Serializer;
 import org.apache.zookeeper.*;
 
@@ -32,11 +31,9 @@ public class ZkUtils {
     }
 
     public static void createPersist(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
-        if (zk.exists(path, false) == null) {
-            try {
-                zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            } catch (KeeperException.NodeExistsException ignore) { }
-        }
+        try {
+            zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        } catch (KeeperException.NodeExistsException ignore) { }
     }
 
     public static void crecatePersistSeq(ZooKeeper zk, String path, byte[] data) throws KeeperException, InterruptedException {
@@ -45,30 +42,27 @@ public class ZkUtils {
 
     public static void deleteChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> cs = zk.getChildren(path, false);
-        for (String c:
-             cs) {
+        for (String c: cs) {
             try {
                 zk.delete(path + "/" + c, -1);
-            } catch (KeeperException.NoNodeException e) {
-                e.printStackTrace();
-            }
+            } catch (KeeperException.NoNodeException ignore) { }
         }
     }
 
-    public static Object getData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
+    public static Object getNodeData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
         byte[] data = zk.getData(path, false, null);
+        if (data == null) return null;
         Object o = serializer.deserialize(data);
         return o;
     }
 
-    public static Object getDataAndDelete(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
-        byte[] data = zk.getData(path, false, null);
-        Object o = serializer.deserialize(data);
-        ZkUtils.delete(zk, path);
+    public static Object getNodeDataWithDelete(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
+        Object o = getNodeData(zk, path, serializer);
+        ZkUtils.deleteNode(zk, path);
         return o;
     }
 
-    public static String getMinSeqChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+    public static String getMinSeqChild(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> list = zk.getChildren(path, false);
         if (!list.isEmpty()) {
             Collections.sort(list);
@@ -77,7 +71,7 @@ public class ZkUtils {
         return null;
     }
 
-    public static void delete(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
+    public static void deleteNode(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
         zk.delete(s, -1);
     }
 
@@ -97,8 +91,7 @@ public class ZkUtils {
         List<Object> objs = Lists.newArrayListWithCapacity(list.size());
         for (String s: list) {
             try {
-                byte[] data = zk.getData(path + "/" + s, false, null);
-                objs.add(serializer.deserialize(data));
+                objs.add(getNodeData(zk, path + "/" + s, serializer));
             } catch (KeeperException.NoNodeException e) {
                 continue;
             }
@@ -117,16 +110,12 @@ public class ZkUtils {
      * @throws InterruptedException
      */
     public static List<Object> takeAllChildrenData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
-        List<String> list = zk.getChildren(path, false);
-        if (list.isEmpty()) return Collections.emptyList();
-        Collections.sort(list);
+        List<String> list = getSortedChildren(zk, path);
         List<Object> objs = Lists.newArrayListWithCapacity(list.size());
         for (String s: list) {
             try {
                 String childPath = path + "/" + s;
-                byte[] data = zk.getData(childPath, false, null);
-                zk.delete(childPath, -1);
-                objs.add(serializer.deserialize(data));
+                objs.add(getNodeDataWithDelete(zk, childPath, serializer));
             } catch (KeeperException.NoNodeException e) {
                 continue;
             }
@@ -144,16 +133,12 @@ public class ZkUtils {
      * @return
      */
     public static List<Object> takeAllChildrenData(ZooKeeper zk, String path, Serializer serializer, int maxElements) throws KeeperException, InterruptedException {
-        List<String> list = zk.getChildren(path, false);
-        if (list.isEmpty()) return Collections.emptyList();
-        Collections.sort(list);
+        List<String> list = getSortedChildren(zk, path);
         List<Object> objs = Lists.newArrayListWithCapacity(maxElements);
         for (String s: list) {
             try {
                 String childPath = path + "/" + s;
-                byte[] data = zk.getData(childPath, false, null);
-                zk.delete(childPath, -1);
-                objs.add(serializer.deserialize(data));
+                objs.add(getNodeDataWithDelete(zk, childPath, serializer));
                 if (--maxElements == 0)
                     break;
             } catch (KeeperException.NoNodeException e) {
@@ -161,5 +146,12 @@ public class ZkUtils {
             }
         }
         return objs;
+    }
+
+    private static List<String> getSortedChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+        List<String> list = zk.getChildren(path, false);
+        if (list.isEmpty()) return Collections.emptyList();
+        Collections.sort(list);
+        return list;
     }
 }

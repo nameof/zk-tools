@@ -4,13 +4,10 @@ import com.google.common.base.Preconditions;
 import com.nameof.zookeeper.util.common.ZkContext;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * 基于zookeeper实现的基本无界队列
@@ -122,10 +119,10 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
         checkState();
         try {
             for(;;) {
-                String min = ZkUtils.getMinSeqChildren(zk, queuePath);
+                String min = ZkUtils.getMinSeqChild(zk, queuePath);
                 if (min == null) throw new NoSuchElementException();
                 try {
-                    return ZkUtils.getDataAndDelete(zk, queuePath + "/" + min, serializer);
+                    return ZkUtils.getNodeDataWithDelete(zk, queuePath + "/" + min, serializer);
                 } catch (KeeperException.NoNodeException ignore) { }
             }
         } catch (Exception e) {
@@ -138,10 +135,10 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
         checkState();
         try {
             for(;;) {
-                String min = ZkUtils.getMinSeqChildren(zk, queuePath);
+                String min = ZkUtils.getMinSeqChild(zk, queuePath);
                 if (min == null) return null;
                 try {
-                    return ZkUtils.getDataAndDelete(zk, queuePath + "/" + min, serializer);
+                    return ZkUtils.getNodeDataWithDelete(zk, queuePath + "/" + min, serializer);
                 } catch (KeeperException.NoNodeException ignore) { }
             }
         } catch (Exception e) {
@@ -153,9 +150,9 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
     public Object element() {
         checkState();
         try {
-            String min = ZkUtils.getMinSeqChildren(zk, queuePath);
+            String min = ZkUtils.getMinSeqChild(zk, queuePath);
             if (min == null) throw new NoSuchElementException();
-            return ZkUtils.getData(zk, queuePath + "/" + min, serializer);
+            return ZkUtils.getNodeData(zk, queuePath + "/" + min, serializer);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -165,9 +162,9 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
     public Object peek() {
         checkState();
         try {
-            String min = ZkUtils.getMinSeqChildren(zk, queuePath);
+            String min = ZkUtils.getMinSeqChild(zk, queuePath);
             if (min == null) return null;
-            return ZkUtils.getData(zk, queuePath + "/" + min, serializer);
+            return ZkUtils.getNodeData(zk, queuePath + "/" + min, serializer);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
