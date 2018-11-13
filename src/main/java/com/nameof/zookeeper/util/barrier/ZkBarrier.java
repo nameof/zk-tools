@@ -8,8 +8,7 @@ import org.apache.zookeeper.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -97,12 +96,13 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         } catch (KeeperException.NoNodeException e) {
             return false;
         }
+
+        Phaser phaser = new Phaser(1);
         while (true) {
-            CountDownLatch cdl = new CountDownLatch(1);
-            EventLatchWatcher elw = new EventLatchWatcher(Watcher.Event.EventType.NodeChildrenChanged, cdl);
-            List<String> list = zk.getChildren(barrierPath, elw);
+            EventPhaserWatcher epw = new EventPhaserWatcher(Watcher.Event.EventType.NodeChildrenChanged, phaser);
+            List<String> list = zk.getChildren(barrierPath, epw);
             if (list.size() > 0) {
-                cdl.await();
+                phaser.awaitAdvance(phaser.getPhase());
             } else {
                 cleanup();
                 return true;

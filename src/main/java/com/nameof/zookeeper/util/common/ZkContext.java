@@ -7,7 +7,9 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
+
+import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
 
 /**
  * @Author: chengpan
@@ -31,30 +33,29 @@ public class ZkContext implements Watcher {
     }
 
     protected void checkState() {
-        switch(zkState) {
-            case SyncConnected:
-                return;
-            case Expired:
-                //create new client ?
-            default:
-                throw new IllegalStateException("zookeeper state : " + zkState);
-        }
+        if (zk.getState() != CONNECTED)
+            switch(zkState) {
+                case Expired:
+                    //create new client ?
+                default:
+                    throw new IllegalStateException("zookeeper state : " + zkState);
+            }
     }
 
-    protected static class EventLatchWatcher implements Watcher {
+    protected static class EventPhaserWatcher implements Watcher {
 
         private final Event.EventType type;
-        private final CountDownLatch cdl;
+        private final Phaser phaser;
 
-        public EventLatchWatcher(Event.EventType type, CountDownLatch cdl) {
+        public EventPhaserWatcher(Event.EventType type, Phaser phaser) {
             this.type = type;
-            this.cdl = cdl;
+            this.phaser = phaser;
         }
 
         @Override
         public void process(WatchedEvent event) {
             if (event.getType() == type)
-                cdl.countDown();
+                phaser.arrive();
         }
     }
 }
