@@ -12,6 +12,7 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * <p>一次性的分布式栅栏
  * <p>zookeeper官方的Barrier代码示例存在几个BUG，可能导致客户端永久阻塞：
  *     <p>1) 使用Object.wait , notify机制唤醒客户端，https://issues.apache.org/jira/browse/ZOOKEEPER-3186，这里使用CountDownLatch替代
  *     <p>2) enter和leave的事件通知竞态产生的ABA问题，https://issues.apache.org/jira/browse/ZOOKEEPER-1011，通过ready节点解决
@@ -31,6 +32,8 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     private String nodeName = UUID.randomUUID().toString();
 
     private AtomicBoolean allReady = new AtomicBoolean(false);
+
+    private boolean destory = false;
 
     public ZkBarrier(String barrierName, String connectString, int size) throws IOException, InterruptedException, KeeperException {
         super(connectString);
@@ -67,12 +70,17 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
         if (ready()) return true;
 
+        waitEnter();
+
+        ZkUtils.createPersist(zk, barrierReadyPath);
+        return true;
+    }
+
+    private void waitEnter() throws InterruptedException, KeeperException {
         List<String> list = zk.getChildren(barrierPath, false);
         while (!allReady.get() && list.size() < size) {
             wait();
         }
-        ZkUtils.createPersist(zk, barrierReadyPath);
-        return true;
     }
 
     private boolean ready() throws KeeperException, InterruptedException {
@@ -81,7 +89,7 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
             public void process(WatchedEvent event) {
                 allReady.set(true);
                 synchronized (ZkBarrier.this) {
-                    notifyAll();
+                    ZkBarrier.this.notifyAll();
                 }
             }
         }) != null;
@@ -110,11 +118,19 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         }
     }
 
+    @Override
+    protected void checkState() {
+        if (destory)
+            throw new IllegalStateException("barrier destoryed");
+        super.checkState();
+    }
+
     private void cleanup() throws KeeperException, InterruptedException {
         try {
             zk.delete(barrierReadyPath, -1);
         } catch (KeeperException.NoNodeException ignore) { } finally {
             allReady.set(false);
+            destory = true;
         }
     }
 }

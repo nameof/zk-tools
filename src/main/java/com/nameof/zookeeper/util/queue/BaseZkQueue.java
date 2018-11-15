@@ -105,6 +105,7 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
     @Override
     public <T> T[] toArray(T[] a) {
         Preconditions.checkNotNull(a);
+        checkState();
         Object[] objs = this.toArray();
         if (a.length < objs.length)
             return Arrays.copyOf(objs, objs.length, (Class<? extends T[]>) a.getClass());

@@ -63,12 +63,8 @@ public class ZkUtils {
     }
 
     public static String getMinSeqChild(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
-        List<String> list = zk.getChildren(path, false);
-        if (!list.isEmpty()) {
-            Collections.sort(list);
-            return list.get(0);
-        }
-        return null;
+        List<String> list = getSortedChildren(zk, path);
+        return list.isEmpty() ? null : list.get(0);
     }
 
     public static void deleteNode(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
@@ -85,9 +81,7 @@ public class ZkUtils {
      * @throws InterruptedException
      */
     public static List<Object> getAllChildrenData(ZooKeeper zk, String path, Serializer serializer) throws KeeperException, InterruptedException {
-        List<String> list = zk.getChildren(path, false);
-        if (list.isEmpty()) return Collections.emptyList();
-        Collections.sort(list);
+        List<String> list = getSortedChildren(zk, path);
         List<Object> objs = Lists.newArrayListWithCapacity(list.size());
         for (String s: list) {
             try {
@@ -148,7 +142,7 @@ public class ZkUtils {
         return objs;
     }
 
-    private static List<String> getSortedChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+    public static List<String> getSortedChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> list = zk.getChildren(path, false);
         if (list.isEmpty()) return Collections.emptyList();
         Collections.sort(list);
