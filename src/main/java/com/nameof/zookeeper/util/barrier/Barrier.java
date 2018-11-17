@@ -7,14 +7,14 @@ package com.nameof.zookeeper.util.barrier;
 public interface Barrier {
     /**
      *
-     * @return 重复enter则返回false
+     * @return
      * @throws Exception
      */
     boolean enter() throws Exception;
 
     /**
      *
-     * @return 尚未enter或已leave则返回false
+     * @return
      * @throws Exception
      */
     boolean leave() throws Exception;

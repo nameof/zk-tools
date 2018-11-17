@@ -62,25 +62,20 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     public synchronized boolean enter() throws Exception {
         checkState();
 
-        try {
-            zk.create(barrierPath + "/" + nodeName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-        } catch (KeeperException.NodeExistsException e) {
-            return false;
-        }
+        prepareEnter();
 
         if (ready()) return true;
 
-        waitEnter();
+        waitOthersEnter();
 
-        ZkUtils.createPersist(zk, barrierReadyPath);
+        notifyOthers();
         return true;
     }
 
-    private void waitEnter() throws InterruptedException, KeeperException {
-        List<String> list = zk.getChildren(barrierPath, false);
-        while (!allReady.get() && list.size() < size) {
-            wait();
-        }
+    private void prepareEnter() throws KeeperException, InterruptedException {
+        try {
+            zk.create(barrierPath + "/" + nodeName, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+        } catch (KeeperException.NodeExistsException igonre) { }
     }
 
     private boolean ready() throws KeeperException, InterruptedException {
@@ -95,16 +90,36 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         }) != null;
     }
 
+    private void waitOthersEnter() throws InterruptedException, KeeperException {
+        List<String> list = zk.getChildren(barrierPath, false);
+        while (!allReady.get() && list.size() < size) {
+            wait();
+        }
+    }
+
+    private void notifyOthers() throws KeeperException, InterruptedException {
+        ZkUtils.createPersist(zk, barrierReadyPath);
+    }
+
     @Override
     public synchronized boolean leave() throws Exception {
         checkState();
 
+        prepareLeave();
+
+        waitOthersLeave();
+
+        cleanup();
+        return true;
+    }
+
+    private void prepareLeave() throws KeeperException, InterruptedException {
         try {
             zk.delete(barrierPath + "/" + nodeName, -1);
-        } catch (KeeperException.NoNodeException e) {
-            return false;
-        }
+        } catch (KeeperException.NoNodeException igonre) { }
+    }
 
+    private void waitOthersLeave() throws KeeperException, InterruptedException {
         Phaser phaser = new Phaser(1);
         while (true) {
             EventPhaserWatcher epw = new EventPhaserWatcher(Watcher.Event.EventType.NodeChildrenChanged, phaser);
@@ -112,17 +127,9 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
             if (list.size() > 0) {
                 phaser.awaitAdvance(phaser.getPhase());
             } else {
-                cleanup();
-                return true;
+                return ;
             }
         }
-    }
-
-    @Override
-    protected void checkState() {
-        if (destory)
-            throw new IllegalStateException("barrier destoryed");
-        super.checkState();
     }
 
     private void cleanup() throws KeeperException, InterruptedException {
@@ -132,5 +139,12 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
             allReady.set(false);
             destory = true;
         }
+    }
+
+    @Override
+    protected void checkState() {
+        if (destory)
+            throw new IllegalStateException("barrier destoryed");
+        super.checkState();
     }
 }

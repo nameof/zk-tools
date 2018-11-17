@@ -67,8 +67,13 @@ public class ZkUtils {
         return list.isEmpty() ? null : list.get(0);
     }
 
-    public static void deleteNode(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
-        zk.delete(s, -1);
+    public static boolean deleteNode(ZooKeeper zk, String s) throws KeeperException, InterruptedException {
+        try {
+            zk.delete(s, -1);
+            return true;
+        }catch (KeeperException.NoNodeException e) {
+            return false;
+        }
     }
 
     /**
@@ -147,5 +152,27 @@ public class ZkUtils {
         if (list.isEmpty()) return Collections.emptyList();
         Collections.sort(list);
         return list;
+    }
+
+
+    /**
+     * 获取比指定节点小的前一个节点名，否则返回当前节点名
+     * @param zk
+     * @param path
+     * @param nodeName
+     * @return
+     * @throws KeeperException
+     * @throws InterruptedException
+     */
+    public static String getSortedPreviousNodeName(ZooKeeper zk, String path, String nodeName) throws KeeperException, InterruptedException {
+        List<String> sortedChildren = getSortedChildren(zk, path);
+        if (sortedChildren.isEmpty() || !sortedChildren.contains(nodeName)
+                || nodeName.equals(sortedChildren.get(0)))
+            return nodeName;
+
+        int nodeIdx = 0;
+        while (!nodeName.equals(sortedChildren.get(nodeIdx)))
+            nodeIdx++;
+        return sortedChildren.get(nodeIdx - 1);
     }
 }
