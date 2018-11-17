@@ -28,10 +28,10 @@ public class ZkBarrierTest {
                     System.out.println("enter-" + no);
                     randomWaitAndLeave(barrier);
                     System.out.println("leave-" + no);
-                    quit.countDown();
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return;
+                } finally {
+                    quit.countDown();
                 }
             });
         }
