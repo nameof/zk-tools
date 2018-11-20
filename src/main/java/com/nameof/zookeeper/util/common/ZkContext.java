@@ -7,7 +7,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
-import java.util.concurrent.Phaser;
 
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
 
@@ -40,22 +39,5 @@ public class ZkContext implements Watcher {
                 default:
                     throw new IllegalStateException("zookeeper state : " + zkState);
             }
-    }
-
-    protected static class EventPhaserWatcher implements Watcher {
-
-        private final Event.EventType type;
-        private final Phaser phaser;
-
-        public EventPhaserWatcher(Event.EventType type, Phaser phaser) {
-            this.type = type;
-            this.phaser = phaser;
-        }
-
-        @Override
-        public void process(WatchedEvent event) {
-            if (event.getType() == type)
-                phaser.arrive();
-        }
     }
 }

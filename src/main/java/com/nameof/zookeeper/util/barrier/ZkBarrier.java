@@ -2,6 +2,7 @@ package com.nameof.zookeeper.util.barrier;
 
 import com.google.common.base.Preconditions;
 import com.nameof.zookeeper.util.common.ZkContext;
+import com.nameof.zookeeper.util.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.*;
 
@@ -14,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * <p>一次性的分布式栅栏
  * <p>zookeeper官方的Barrier代码示例存在几个BUG，可能导致客户端永久阻塞：
- *     <p>1) 使用Object.wait , notify机制唤醒客户端，https://issues.apache.org/jira/browse/ZOOKEEPER-3186，这里使用CountDownLatch替代
+ *     <p>1) 使用Object.wait , notify机制唤醒客户端，https://issues.apache.org/jira/browse/ZOOKEEPER-3186
  *     <p>2) enter和leave的事件通知竞态产生的ABA问题，https://issues.apache.org/jira/browse/ZOOKEEPER-1011，通过ready节点解决
  * <p><p>thread-safe
  * @Author: chengpan
@@ -22,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     private static final String NAMESPACE = "/zkbarrier";
+
+    private ZkPrimitiveSupport zkPrimitiveSupport;
 
     private int size;
 
@@ -42,6 +45,7 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         this.barrierPath = NAMESPACE + "/" + barrierName;
         this.barrierReadyPath = NAMESPACE + "/" + barrierName + "_ready";
         this.size = size;
+        this.zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
 
         init();
     }
@@ -120,16 +124,7 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     }
 
     private void waitOthersLeave() throws KeeperException, InterruptedException {
-        Phaser phaser = new Phaser(1);
-        while (true) {
-            EventPhaserWatcher epw = new EventPhaserWatcher(Watcher.Event.EventType.NodeChildrenChanged, phaser);
-            List<String> list = zk.getChildren(barrierPath, epw);
-            if (list.size() > 0) {
-                phaser.awaitAdvance(phaser.getPhase());
-            } else {
-                return ;
-            }
-        }
+        zkPrimitiveSupport.waitNonChildren(barrierPath);
     }
 
     private void cleanup() throws KeeperException, InterruptedException {

@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.util.lock;
 
+import com.nameof.zookeeper.util.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -19,9 +20,11 @@ import java.util.concurrent.TimeoutException;
 public class ReentrantZkLock extends BaseZkLock {
 
     private String nodeName;
+    private ZkPrimitiveSupport zkPrimitiveSupport;
 
     public ReentrantZkLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {
         super(lockName, connectString);
+        zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
     }
 
     @Override
@@ -30,10 +33,7 @@ public class ReentrantZkLock extends BaseZkLock {
             try {
                 lockInterruptibly();
                 return;
-            } catch (InterruptedException ignore) {
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            } catch (InterruptedException ignore) { }
         }
     }
 
@@ -52,14 +52,13 @@ public class ReentrantZkLock extends BaseZkLock {
     }
 
     private void lockInterruptiblyInternal() throws KeeperException, InterruptedException {
+        prepareLock();
         Phaser phaser = new Phaser(1);
         do {
-            prepareLock();
-
             String previousNodeName = ZkUtils.getSortedPreviousNodeName(zk, lockPath, nodeName);
             if (nodeName.equals(previousNodeName)) return;
 
-            waitToGetLock(phaser, lockPath + "/" + previousNodeName);
+            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + previousNodeName);
         } while (true);
     }
 
@@ -67,7 +66,11 @@ public class ReentrantZkLock extends BaseZkLock {
     public synchronized boolean tryLock() {
         checkState();
         try {
-            return tryLockInternal();
+            while (true) {
+                try {
+                    return tryLockInternal();
+                } catch (InterruptedException ignore) { }
+            }
         } catch (Exception e) {
             unlock();
             return false;
@@ -90,6 +93,7 @@ public class ReentrantZkLock extends BaseZkLock {
         try {
             return tryLockInternal(time, unit);
         } catch (TimeoutException e) {
+            unlock();
             return false;
         }  catch (InterruptedException e) {
             unlock();
@@ -101,12 +105,11 @@ public class ReentrantZkLock extends BaseZkLock {
     }
 
     private boolean tryLockInternal(long time, TimeUnit unit) throws InterruptedException, TimeoutException, KeeperException {
+        prepareLock();
         long maxWaitMills = unit.toMillis(time);
         long start = System.currentTimeMillis();
         Phaser phaser = new Phaser(1);
         do {
-            prepareLock();
-
             String previousNodeName = ZkUtils.getSortedPreviousNodeName(zk, lockPath, nodeName);
             if (nodeName.equals(previousNodeName)) return true;
 
@@ -114,7 +117,7 @@ public class ReentrantZkLock extends BaseZkLock {
             if (waitMillis <= 0)
                 break;
 
-            waitToGetLock(phaser, lockPath + "/" + previousNodeName, waitMillis, TimeUnit.MILLISECONDS);
+            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + previousNodeName, waitMillis, TimeUnit.MILLISECONDS);
         } while (true);
 
         unlock();
@@ -140,24 +143,6 @@ public class ReentrantZkLock extends BaseZkLock {
             throw new RuntimeException(e);
         }
         this.nodeName = null;
-    }
-
-    private void waitToGetLock(Phaser phaser, String path) throws KeeperException, InterruptedException {
-        try {
-            waitToGetLock(phaser, path, -1, null);
-        } catch (TimeoutException e) { }
-    }
-
-    private void waitToGetLock(Phaser phaser, String path, long time, TimeUnit unit) throws KeeperException, InterruptedException, TimeoutException {
-        EventPhaserWatcher epw = new EventPhaserWatcher(Event.EventType.NodeDeleted, phaser);
-        Stat exists = zk.exists(path, epw);
-        if (exists == null) {
-            return;
-        }
-        if (time == -1 && unit == null)
-            phaser.awaitAdvance(phaser.getPhase());
-        else
-            phaser.awaitAdvanceInterruptibly(phaser.getPhase(), time, unit);
     }
 
     private String getNodePath() {

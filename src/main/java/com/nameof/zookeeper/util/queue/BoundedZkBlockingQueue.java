@@ -30,7 +30,7 @@ public class BoundedZkBlockingQueue extends ZkBlockingQueue {
     public void put(Object o) throws InterruptedException {
         Phaser phaser = new Phaser(1);
         while (!offer(o)) {
-            waitChildren(phaser);
+            zkPrimitiveSupport.waitChildren(phaser, queuePath);
         }
     }
 
@@ -56,7 +56,7 @@ public class BoundedZkBlockingQueue extends ZkBlockingQueue {
         Phaser phaser = new Phaser(1);
         while (size() >= size) {
             try {
-                waitChildren(phaser, timeout, unit);
+                zkPrimitiveSupport.waitChildren(phaser, queuePath, timeout, unit);
             } catch (TimeoutException e) {
                 return false;
             }
