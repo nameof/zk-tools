@@ -1,5 +1,5 @@
 # zk-util
-some use cases for zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock
+some tool for zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock
 
 # usage
 ```
@@ -12,6 +12,7 @@ some use cases for zookeeper, queue、blocking queue、barriers、exclusive lock
         <version>1.0-SNAPSHOT</version>
     </dependency>
 ```
+
 1.queue
 ```
     Queue<Object> zkQueue = new ZkQueue(queueName, connectString, mySerializer);
@@ -20,6 +21,7 @@ some use cases for zookeeper, queue、blocking queue、barriers、exclusive lock
     zkQueue.poll();
     //...
 ```
+
 2.blocking queue
 ```
     BlockingQueue<Object> zkQueue = new ZkBlockingQueue(queueName, connectString, mySerializer);
@@ -27,10 +29,31 @@ some use cases for zookeeper, queue、blocking queue、barriers、exclusive lock
     zkQueue.take();
     //...
 ```
-3.barrier
+
+3.bounded blocking queue
 ```
-    Barrier barrier = new ZkBarrier(barrierName, connectString, 1);
+    BlockingQueue<Object> zkQueue = new BoundedZkBlockingQueue(queueName, connectString, mySerializer, size);
+    zkQueue.offer(obj); //may return false
+    zkQueue.add(obj); //may throw an IllegalStateException
+    //...
+```
+
+4.barrier
+```
+    Barrier barrier = new ZkBarrier(barrierName, connectString, size);
     barrier.enter();
     //...
     barrier.leave();
+    //...
+```
+
+5.reentrant lock(fair)
+```
+    Lock lock = new ReentrantZkLock(lockName, connectString);
+    lock.lock(); //tryLock(), lockInterruptibly(), tryLock(time, unit)
+    try {
+        //...
+    } finally {
+        lock.unlock();
+    }
 ```
