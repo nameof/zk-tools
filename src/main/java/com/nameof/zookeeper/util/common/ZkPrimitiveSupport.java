@@ -28,24 +28,23 @@ public class ZkPrimitiveSupport {
      * 阻塞，等待path上的 NodeChildrenChanged 事件发生
      * @param phaser
      * @param path
-     * @param time
-     * @param unit
+     * @param duration
      * @throws InterruptedException
      * @throws TimeoutException
      */
-    public void waitChildren(Phaser phaser, String path, long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+    public void waitChildren(Phaser phaser, String path, WaitDuration duration) throws InterruptedException, TimeoutException {
         EventPhaserWatcher epw = new EventPhaserWatcher(Watcher.Event.EventType.NodeChildrenChanged, phaser);
         try {
             zk.getChildren(path, epw);
         } catch (KeeperException e) {
             throw new RuntimeException(e);
         }
-        await(phaser, time, unit);
+        await(phaser, duration);
     }
 
     public void waitChildren(Phaser phaser, String path) throws InterruptedException {
         try {
-            waitChildren(phaser, path, -1, null);
+            waitChildren(phaser, path, null);
         } catch (TimeoutException ignore) {
             //never happen
         }
@@ -66,34 +65,34 @@ public class ZkPrimitiveSupport {
 
     public void waitNotExists(Phaser phaser, String path) throws KeeperException, InterruptedException {
         try {
-            waitNotExists(phaser, path, -1, null);
+            waitNotExists(phaser, path, null);
         } catch (TimeoutException ignore) {
             //never happen
         }
     }
 
-    public void waitNotExists(Phaser phaser, String path, long time, TimeUnit unit) throws KeeperException, InterruptedException, TimeoutException {
+    public void waitNotExists(Phaser phaser, String path, WaitDuration duration) throws KeeperException, InterruptedException, TimeoutException {
         EventPhaserWatcher epw = new EventPhaserWatcher(Watcher.Event.EventType.NodeDeleted, phaser);
         Stat exists = zk.exists(path, epw);
         if (exists == null) {
             return;
         }
-        await(phaser, time, unit);
+        await(phaser, duration);
     }
 
     private void await(Phaser phaser) throws InterruptedException {
         try {
-            await(phaser, -1, null);
+            await(phaser, null);
         } catch (TimeoutException ignore) {
             //never happen
         }
     }
 
-    private void await(Phaser phaser, long time, TimeUnit unit) throws TimeoutException, InterruptedException {
-        if (time == -1 && unit == null)
+    private void await(Phaser phaser, WaitDuration duration) throws TimeoutException, InterruptedException {
+        if (duration == null)
             phaser.awaitAdvance(phaser.getPhase());
         else
-            phaser.awaitAdvanceInterruptibly(phaser.getPhase(), time, unit);
+            phaser.awaitAdvanceInterruptibly(phaser.getPhase(), duration.getDuration(), duration.getUnit());
     }
 
     private static class EventPhaserWatcher implements Watcher {

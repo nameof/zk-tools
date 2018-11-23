@@ -20,18 +20,24 @@ import static org.apache.zookeeper.Watcher.Event.KeeperState.SyncConnected;
  * @Author: chengpan
  * @Date: 2018/11/11
  */
-public abstract class BaseZkLock extends ZkContext implements Lock, Watcher {
+public abstract class AbstractZkLock extends ZkContext implements Lock, Watcher {
 
     protected static final String NAMESPACE = "/zklock";
 
     protected  String lockPath;
 
-    public BaseZkLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {
+    public AbstractZkLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {
         super(connectString);
+        checkArgs(lockName);
+        init(lockName);
+    }
 
+    private void checkArgs(String lockName) {
         Preconditions.checkNotNull(lockName, "lockName null");
         Preconditions.checkArgument(!lockName.contains("/"), "lockName invalid");
+    }
 
+    private void init(String lockName) throws KeeperException, InterruptedException {
         this.lockPath = NAMESPACE + "/" + lockName;
 
         checkState();

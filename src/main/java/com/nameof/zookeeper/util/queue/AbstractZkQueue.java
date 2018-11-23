@@ -13,7 +13,7 @@ import java.util.*;
  * 基于zookeeper实现的基本无界队列
  * @author chengpan
  */
-public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Watcher {
+public abstract class AbstractZkQueue extends ZkContext implements Queue<Object>, Watcher {
 
     protected static final String NAMESPACE = "/zkqueue";
 
@@ -21,12 +21,10 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
 
     protected String queuePath;
 
-    public BaseZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
+    public AbstractZkQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         super(connectString);
         checkArgs(queueName, serializer);
-        this.queuePath = NAMESPACE + "/" + queueName;
-        this.serializer = serializer;
-        init();
+        init(queueName, serializer);
     }
 
     private void checkArgs(String queueName, Serializer serializer) {
@@ -35,7 +33,9 @@ public abstract class BaseZkQueue extends ZkContext implements Queue<Object>, Wa
         Preconditions.checkNotNull(serializer, "serializer null");
     }
 
-    private void init() throws KeeperException, InterruptedException {
+    private void init(String queueName, Serializer serializer) throws KeeperException, InterruptedException {
+        this.queuePath = NAMESPACE + "/" + queueName;
+        this.serializer = serializer;
         checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
         ZkUtils.createPersist(zk, queuePath);

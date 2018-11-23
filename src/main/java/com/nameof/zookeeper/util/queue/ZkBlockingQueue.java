@@ -1,6 +1,7 @@
 package com.nameof.zookeeper.util.queue;
 
 import com.google.common.base.Preconditions;
+import com.nameof.zookeeper.util.common.WaitDuration;
 import com.nameof.zookeeper.util.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.KeeperException;
@@ -16,13 +17,12 @@ import java.util.concurrent.TimeoutException;
  * 无界阻塞队列
  * @author chengpan
  */
-public class ZkBlockingQueue extends BaseZkBlockingQueue {
+public class ZkBlockingQueue extends AbstractZkBlockingQueue {
 
     protected ZkPrimitiveSupport zkPrimitiveSupport;
 
     public ZkBlockingQueue(String queueName, String connectString, Serializer serializer) throws IOException, InterruptedException, KeeperException {
         super(queueName, connectString, serializer);
-
         zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
     }
 
@@ -76,18 +76,15 @@ public class ZkBlockingQueue extends BaseZkBlockingQueue {
     @Override
     public Object poll(long timeout, TimeUnit unit) throws InterruptedException {
         checkState();
-        long total = unit.toMillis(timeout);
-        long start = System.currentTimeMillis();
-        long waitMillis = total - (System.currentTimeMillis() - start);
         Object o = null;
+        WaitDuration duration = WaitDuration.from(unit.toMillis(timeout));
         Phaser phaser = new Phaser(1);
-        while ((o = poll()) == null && waitMillis > 0) {
+        while ((o = poll()) == null) {
             try {
-                zkPrimitiveSupport.waitChildren(phaser, queuePath, waitMillis, TimeUnit.MILLISECONDS);
+                zkPrimitiveSupport.waitChildren(phaser, queuePath, duration);
             } catch (TimeoutException e) {
                 break;
             }
-            waitMillis = total - (System.currentTimeMillis() - start);
         }
         return o;
     }

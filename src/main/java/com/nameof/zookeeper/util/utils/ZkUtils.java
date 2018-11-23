@@ -148,10 +148,13 @@ public class ZkUtils {
     }
 
     public static List<String> getSortedChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
-        List<String> list = zk.getChildren(path, false);
-        if (list.isEmpty()) return Collections.emptyList();
+        List<String> list = getChildren(zk, path);
         Collections.sort(list);
         return list;
+    }
+
+    public static List<String> getChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+        return zk.getChildren(path, false);
     }
 
 
@@ -164,7 +167,7 @@ public class ZkUtils {
      * @throws KeeperException
      * @throws InterruptedException
      */
-    public static String getSortedPreviousNodeName(ZooKeeper zk, String path, String nodeName) throws KeeperException, InterruptedException {
+    public static String getSortedPrecedNodeName(ZooKeeper zk, String path, String nodeName) throws KeeperException, InterruptedException {
         List<String> sortedChildren = getSortedChildren(zk, path);
         if (sortedChildren.isEmpty() || !sortedChildren.contains(nodeName)
                 || nodeName.equals(sortedChildren.get(0)))

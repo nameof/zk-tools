@@ -41,13 +41,7 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     public ZkBarrier(String barrierName, String connectString, int size) throws IOException, InterruptedException, KeeperException {
         super(connectString);
         checkArgs(barrierName, size);
-
-        this.barrierPath = NAMESPACE + "/" + barrierName;
-        this.barrierReadyPath = NAMESPACE + "/" + barrierName + "_ready";
-        this.size = size;
-        this.zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
-
-        init();
+        init(barrierName, size);
     }
 
     private void checkArgs(String barrierName, int size) {
@@ -56,7 +50,12 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         Preconditions.checkNotNull(size > 0, "size invalid");
     }
 
-    private void init() throws KeeperException, InterruptedException {
+    private void init(String barrierName, int size) throws KeeperException, InterruptedException {
+        this.barrierPath = NAMESPACE + "/" + barrierName;
+        this.barrierReadyPath = NAMESPACE + "/" + barrierName + "_ready";
+        this.size = size;
+        this.zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
+
         checkState();
         ZkUtils.createPersist(zk, NAMESPACE);
         ZkUtils.createPersist(zk, barrierPath);

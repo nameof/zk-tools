@@ -1,11 +1,11 @@
 package com.nameof.zookeeper.util.lock;
 
+import com.nameof.zookeeper.util.common.WaitDuration;
 import com.nameof.zookeeper.util.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.util.utils.ZkUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.util.concurrent.Phaser;
@@ -13,11 +13,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * 线程安全，可重入的分布式排它锁<br><br>
+ * 线程安全，可重入的分布式排它锁，基于zookeeper意味着它是公平的锁<br><br>
  * @Author: chengpan
  * @Date: 2018/11/11
  */
-public class ReentrantZkLock extends BaseZkLock {
+public class ReentrantZkLock extends AbstractZkLock {
 
     private String nodeName;
     private ZkPrimitiveSupport zkPrimitiveSupport;
@@ -55,10 +55,10 @@ public class ReentrantZkLock extends BaseZkLock {
         prepareLock();
         Phaser phaser = new Phaser(1);
         do {
-            String previousNodeName = ZkUtils.getSortedPreviousNodeName(zk, lockPath, nodeName);
-            if (nodeName.equals(previousNodeName)) return;
+            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
+            if (nodeName.equals(precedNodeName)) return;
 
-            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + previousNodeName);
+            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + precedNodeName);
         } while (true);
     }
 
@@ -80,8 +80,8 @@ public class ReentrantZkLock extends BaseZkLock {
     private boolean tryLockInternal() throws KeeperException, InterruptedException {
         prepareLock();
 
-        String previousNodeName = ZkUtils.getSortedPreviousNodeName(zk, lockPath, nodeName);
-        if (nodeName.equals(previousNodeName)) return true;
+        String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
+        if (nodeName.equals(precedNodeName)) return true;
 
         unlock();
         return false;
@@ -104,24 +104,16 @@ public class ReentrantZkLock extends BaseZkLock {
         }
     }
 
-    private boolean tryLockInternal(long time, TimeUnit unit) throws InterruptedException, TimeoutException, KeeperException {
+    private boolean tryLockInternal(long time, TimeUnit unit) throws InterruptedException, KeeperException, TimeoutException {
         prepareLock();
-        long maxWaitMills = unit.toMillis(time);
-        long start = System.currentTimeMillis();
         Phaser phaser = new Phaser(1);
+        WaitDuration duration = WaitDuration.from(unit.toMillis(time));
         do {
-            String previousNodeName = ZkUtils.getSortedPreviousNodeName(zk, lockPath, nodeName);
-            if (nodeName.equals(previousNodeName)) return true;
+            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
+            if (nodeName.equals(precedNodeName)) return true;
 
-            long waitMillis = maxWaitMills - (System.currentTimeMillis() - start);
-            if (waitMillis <= 0)
-                break;
-
-            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + previousNodeName, waitMillis, TimeUnit.MILLISECONDS);
+            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + precedNodeName, duration);
         } while (true);
-
-        unlock();
-        return false;
     }
 
     private void prepareLock() throws KeeperException, InterruptedException {
