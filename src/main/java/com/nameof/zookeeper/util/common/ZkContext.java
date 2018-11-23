@@ -31,6 +31,22 @@ public class ZkContext implements Watcher {
             this.zkState = event.getState();
     }
 
+    public void destory() {
+        boolean interrupt = false;
+        try {
+            do {
+                try {
+                    zk.close();
+                    return;
+                } catch (InterruptedException e) {
+                    interrupt = true;
+                }
+            } while (true);
+        } finally {
+            if (interrupt) Thread.currentThread().interrupt();
+        }
+    }
+
     protected void checkState() {
         if (zk.getState() != CONNECTED)
             switch(zkState) {

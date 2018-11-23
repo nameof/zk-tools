@@ -129,9 +129,8 @@ public class ReentrantZkLock extends AbstractZkLock {
         checkState();
 
         try {
-            zk.delete(getNodePath(), -1);
-        } catch (KeeperException.NoNodeException e) {
-        } catch (Exception e) {
+            ZkUtils.deleteNodeIgnoreInterrupt(zk, getNodePath());
+        } catch (KeeperException e) {
             throw new RuntimeException(e);
         }
         this.nodeName = null;

@@ -76,6 +76,24 @@ public class ZkUtils {
         }
     }
 
+    public static boolean deleteNodeIgnoreInterrupt(ZooKeeper zk, String s) throws KeeperException {
+        boolean interrupt = false;
+        try {
+            do {
+                try {
+                    zk.delete(s, -1);
+                    return true;
+                }catch (KeeperException.NoNodeException e) {
+                    return false;
+                } catch (InterruptedException ignore) {
+                    interrupt = true;
+                }
+            } while (true);
+        } finally {
+            if (interrupt) Thread.currentThread().interrupt();
+        }
+    }
+
     /**
      * 获取所有子节点数据，忽略被并发删除的节点
      * @param zk

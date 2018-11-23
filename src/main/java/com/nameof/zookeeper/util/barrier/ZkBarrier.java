@@ -116,23 +116,26 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         return true;
     }
 
-    private void prepareLeave() throws KeeperException, InterruptedException {
-        try {
-            zk.delete(barrierPath + "/" + nodeName, -1);
-        } catch (KeeperException.NoNodeException igonre) { }
+    private void prepareLeave() throws KeeperException {
+        ZkUtils.deleteNodeIgnoreInterrupt(zk, barrierPath + "/" + nodeName);
     }
 
     private void waitOthersLeave() throws KeeperException, InterruptedException {
         zkPrimitiveSupport.waitNonChildren(barrierPath);
     }
 
-    private void cleanup() throws KeeperException, InterruptedException {
+    private void cleanup() throws KeeperException {
         try {
-            zk.delete(barrierReadyPath, -1);
-        } catch (KeeperException.NoNodeException ignore) { } finally {
-            allReady.set(false);
-            destory = true;
+            ZkUtils.deleteNodeIgnoreInterrupt(zk, barrierReadyPath);
+        } finally {
+            destory();
         }
+    }
+
+    @Override
+    public void destory() {
+        destory = true;
+        super.destory();
     }
 
     @Override
