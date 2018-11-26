@@ -57,3 +57,15 @@ some tools based on zookeeper, queue、blocking queue、barriers、exclusive loc
         lock.unlock();
     }
 ```
+
+6.read write lock(fair, unsupport downgrading, upgrading, revocable)
+```
+    ReadWriteLock lock = new ReentrantZkReadWriteLock(lockName, connectString);
+    Lock lockk = readMode ? lock.readLock() : lock.writeLock();
+    lockk.lock(); //also tryLock(), lockInterruptibly(), tryLock(time, unit)
+    try {
+        //...
+    } finally {
+        lockk.unlock();
+    }
+```
