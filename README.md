@@ -1,5 +1,5 @@
 # zk-util
-some tool for zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock
+some tools based on zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock. implement the JDK standard API
 
 # usage
 ```
@@ -33,8 +33,8 @@ some tool for zookeeper, queue、blocking queue、barriers、exclusive lock、re
 3.bounded blocking queue
 ```
     BlockingQueue<Object> zkQueue = new BoundedZkBlockingQueue(queueName, connectString, mySerializer, size);
-    zkQueue.offer(obj); //may return false
-    zkQueue.add(obj); //may throw an IllegalStateException
+    zkQueue.offer(obj);
+    zkQueue.add(obj);
     //...
 ```
 

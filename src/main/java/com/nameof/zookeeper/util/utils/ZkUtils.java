@@ -40,6 +40,11 @@ public class ZkUtils {
         zk.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
     }
 
+    public static String createTempAndGetSeq(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
+        String s = zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        return s.substring(path.length());
+    }
+
     public static void deleteChildren(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
         List<String> cs = zk.getChildren(path, false);
         for (String c: cs) {
@@ -187,8 +192,9 @@ public class ZkUtils {
      */
     public static String getSortedPrecedNodeName(ZooKeeper zk, String path, String nodeName) throws KeeperException, InterruptedException {
         List<String> sortedChildren = getSortedChildren(zk, path);
-        if (sortedChildren.isEmpty() || !sortedChildren.contains(nodeName)
-                || nodeName.equals(sortedChildren.get(0)))
+        boolean noOther = sortedChildren.isEmpty() || !sortedChildren.contains(nodeName)
+                || nodeName.equals(sortedChildren.get(0));
+        if (noOther)
             return nodeName;
 
         int nodeIdx = 0;
