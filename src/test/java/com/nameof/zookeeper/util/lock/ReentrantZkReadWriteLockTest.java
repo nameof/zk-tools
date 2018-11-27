@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.util.lock;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -13,6 +14,13 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @Date: 2018/11/20
  */
 public class ReentrantZkReadWriteLockTest {
+    @Test
+    public void testLockState() throws Exception {
+        ReadWriteLock lock = new ReentrantZkReadWriteLock("l2", "172.16.98.129");
+        lock.readLock().lock();
+        lock.writeLock().lock();
+    }
+
     @Test
     public void testLock() throws Exception {
         final int concurrentSize = 30;
