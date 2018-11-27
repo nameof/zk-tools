@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class ReentrantZkLock extends AbstractZkLock {
 
-    private String nodeName;
+    private String nodeNameSequence;
     private ZkPrimitiveSupport zkPrimitiveSupport;
 
     public ReentrantZkLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {
@@ -55,8 +55,8 @@ public class ReentrantZkLock extends AbstractZkLock {
         prepareLock();
         Phaser phaser = new Phaser(1);
         do {
-            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
-            if (nodeName.equals(precedNodeName)) return;
+            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeNameSequence);
+            if (nodeNameSequence.equals(precedNodeName)) return;
 
             zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + precedNodeName);
         } while (true);
@@ -80,8 +80,8 @@ public class ReentrantZkLock extends AbstractZkLock {
     private boolean tryLockInternal() throws KeeperException, InterruptedException {
         prepareLock();
 
-        String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
-        if (nodeName.equals(precedNodeName)) return true;
+        String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeNameSequence);
+        if (nodeNameSequence.equals(precedNodeName)) return true;
 
         unlock();
         return false;
@@ -109,23 +109,22 @@ public class ReentrantZkLock extends AbstractZkLock {
         Phaser phaser = new Phaser(1);
         WaitDuration duration = WaitDuration.from(unit.toMillis(time));
         do {
-            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeName);
-            if (nodeName.equals(precedNodeName)) return true;
+            String precedNodeName = ZkUtils.getSortedPrecedNodeName(zk, lockPath, nodeNameSequence);
+            if (nodeNameSequence.equals(precedNodeName)) return true;
 
             zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + precedNodeName, duration);
         } while (true);
     }
 
     private void prepareLock() throws KeeperException, InterruptedException {
-        if (nodeName == null) {
-            String nodePath = zk.create(lockPath + "/", null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-            nodeName = nodePath.substring(nodePath.lastIndexOf("/") + 1);
+        if (nodeNameSequence == null) {
+            nodeNameSequence = ZkUtils.createTempAndGetSeq(zk, lockPath + "/");
         }
     }
 
     @Override
     public synchronized void unlock() {
-        if (nodeName == null) return;
+        if (nodeNameSequence == null) return;
         checkState();
 
         try {
@@ -133,10 +132,10 @@ public class ReentrantZkLock extends AbstractZkLock {
         } catch (KeeperException e) {
             throw new RuntimeException(e);
         }
-        this.nodeName = null;
+        this.nodeNameSequence = null;
     }
 
     private String getNodePath() {
-        return lockPath + "/" + nodeName;
+        return lockPath + "/" + nodeNameSequence;
     }
 }

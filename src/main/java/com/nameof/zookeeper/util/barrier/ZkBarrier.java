@@ -30,8 +30,6 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     private String barrierPath;
 
-    private String barrierReadyPath;
-
     private String nodeName = UUID.randomUUID().toString();
 
     private AtomicBoolean allReady = new AtomicBoolean(false);
@@ -52,7 +50,6 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     private void init(String barrierName, int size) throws KeeperException, InterruptedException {
         this.barrierPath = NAMESPACE + "/" + barrierName;
-        this.barrierReadyPath = NAMESPACE + "/" + barrierName + "_ready";
         this.size = size;
         this.zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
 
@@ -62,17 +59,16 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     }
 
     @Override
-    public synchronized boolean enter() throws Exception {
+    public synchronized void enter() throws Exception {
         checkState();
 
         prepareEnter();
 
-        if (ready()) return true;
+        if (ready()) return;
 
         waitOthersEnter();
 
         notifyOthers();
-        return true;
     }
 
     private void prepareEnter() throws KeeperException, InterruptedException {
@@ -82,7 +78,7 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     }
 
     private boolean ready() throws KeeperException, InterruptedException {
-        return zk.exists(barrierReadyPath, new Watcher() {
+        return zk.exists(getBarrierReadyPath(), new Watcher() {
             @Override
             public void process(WatchedEvent event) {
                 allReady.set(true);
@@ -101,11 +97,11 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
     }
 
     private void notifyOthers() throws KeeperException, InterruptedException {
-        ZkUtils.createPersist(zk, barrierReadyPath);
+        ZkUtils.createPersist(zk, getBarrierReadyPath());
     }
 
     @Override
-    public synchronized boolean leave() throws Exception {
+    public synchronized void leave() throws Exception {
         checkState();
 
         prepareLeave();
@@ -113,7 +109,6 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
         waitOthersLeave();
 
         cleanup();
-        return true;
     }
 
     private void prepareLeave() throws KeeperException {
@@ -126,10 +121,14 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     private void cleanup() throws KeeperException {
         try {
-            ZkUtils.deleteNodeIgnoreInterrupt(zk, barrierReadyPath);
+            ZkUtils.deleteNodeIgnoreInterrupt(zk, getBarrierReadyPath());
         } finally {
             destory();
         }
+    }
+
+    private String getBarrierReadyPath() {
+        return barrierPath + "_ready";
     }
 
     @Override

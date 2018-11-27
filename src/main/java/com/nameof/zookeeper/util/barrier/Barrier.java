@@ -10,12 +10,12 @@ public interface Barrier {
      * @return
      * @throws Exception
      */
-    boolean enter() throws Exception;
+    void enter() throws Exception;
 
     /**
      *
      * @return
      * @throws Exception
      */
-    boolean leave() throws Exception;
+    void leave() throws Exception;
 }
