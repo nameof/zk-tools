@@ -1,10 +1,7 @@
 package com.nameof.zookeeper.util.lock;
 
 import com.nameof.zookeeper.util.common.ZkContext;
-import com.nameof.zookeeper.util.utils.ZkUtils;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
 import java.util.List;
@@ -53,13 +50,12 @@ public class ReentrantZkReadWriteLock implements ReadWriteLock {
         }
 
         private String getPrecedWriter() throws KeeperException, InterruptedException {
-            List<String> children = ZkUtils.getChildren(zk, lockPath);
-            for (String child : children) {
-                if (child.startsWith(WRITE_PREFIX)) {
-                    child = child.substring(WRITE_PREFIX.length());
-                    if (child.compareTo(nodeNameSequence) < 0)
-                        return WRITE_PREFIX + child;
-                }
+            List<ReadWriteLockNodeEntry> nodeEntry = getSortedNodeEntry();
+            ReadWriteLockNodeEntry current = new ReadWriteLockNodeEntry(true, nodeNameSequence);
+            for (int i = nodeEntry.indexOf(current) - 1; i >= 0; i--) {
+                ReadWriteLockNodeEntry entry = nodeEntry.get(i);
+                if (!entry.isReadNode())
+                    return entry.getNodeName();
             }
             return getNodeName();
         }
@@ -87,19 +83,11 @@ public class ReentrantZkReadWriteLock implements ReadWriteLock {
         }
 
         private String getPreceNodeName() throws KeeperException, InterruptedException {
-            List<String> children = ZkUtils.getChildren(zk, lockPath);
-            for (String child : children) {
-                boolean read = true;
-                if (child.startsWith(WRITE_PREFIX)) {
-                    read = false;
-                    child = child.substring(WRITE_PREFIX.length());
-                } else {
-                    child = child.substring(READ_PREFIX.length());
-                }
-                if (child.compareTo(nodeNameSequence) < 0) {
-                    return read ? READ_PREFIX + child : WRITE_PREFIX + child;
-                }
-            }
+            List<ReadWriteLockNodeEntry> nodeEntry = getSortedNodeEntry();
+            ReadWriteLockNodeEntry current = new ReadWriteLockNodeEntry(false, nodeNameSequence);
+            int currentPosition = nodeEntry.indexOf(current);
+            if (currentPosition > 0)
+                return nodeEntry.get(currentPosition - 1).getNodeName();
             return getNodeName();
         }
 

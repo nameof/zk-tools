@@ -197,9 +197,7 @@ public class ZkUtils {
         if (noOther)
             return nodeName;
 
-        int nodeIdx = 0;
-        while (!nodeName.equals(sortedChildren.get(nodeIdx)))
-            nodeIdx++;
+        int nodeIdx = sortedChildren.indexOf(nodeName);
         return sortedChildren.get(nodeIdx - 1);
     }
 }

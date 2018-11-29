@@ -1,6 +1,5 @@
 package com.nameof.zookeeper.util.lock;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
