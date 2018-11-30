@@ -1,4 +1,4 @@
-# zk-util
+# zk-tools
 some tools based on zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock. implement the JDK standard API
 
 # usage
@@ -8,7 +8,7 @@ some tools based on zookeeper, queue、blocking queue、barriers、exclusive loc
 ```
     <dependency>
         <groupId>com.nameof</groupId>
-        <artifactId>zk-util</artifactId>
+        <artifactId>zk-tools</artifactId>
         <version>1.0-SNAPSHOT</version>
     </dependency>
 ```
