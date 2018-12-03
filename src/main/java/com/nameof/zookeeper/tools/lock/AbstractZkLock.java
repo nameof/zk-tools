@@ -179,14 +179,6 @@ public abstract class AbstractZkLock extends ZkContext implements Lock, Watcher 
     }
 
     @Override
-    public void destory() {
-        try {
-            ZkUtils.deleteNodeIgnoreInterrupt(zk, lockPath);
-        } catch (KeeperException ignore) { }
-        super.destory();
-    }
-
-    @Override
     public Condition newCondition() {
         throw new UnsupportedOperationException();
     }

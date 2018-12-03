@@ -1,10 +1,12 @@
 package com.nameof.zookeeper.tools.barrier;
 
 import com.google.common.base.Preconditions;
-import com.nameof.zookeeper.tools.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.tools.common.ZkContext;
+import com.nameof.zookeeper.tools.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.tools.utils.ZkUtils;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 
 import java.io.IOException;
 import java.util.List;
@@ -126,15 +128,6 @@ public class ZkBarrier extends ZkContext implements Barrier, Watcher {
 
     private String getBarrierReadyPath() {
         return barrierPath + "_ready";
-    }
-
-    @Override
-    public void destory() {
-        destory = true;
-        try {
-            ZkUtils.deleteNodeIgnoreInterrupt(zk, barrierPath);
-        } catch (KeeperException ignore) { }
-        super.destory();
     }
 
     @Override
