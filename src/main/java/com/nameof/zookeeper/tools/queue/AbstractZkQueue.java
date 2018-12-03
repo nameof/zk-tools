@@ -172,6 +172,14 @@ public abstract class AbstractZkQueue extends ZkContext implements Queue<Object>
     }
 
     @Override
+    public void destory() {
+        try {
+            ZkUtils.deleteNodeIgnoreInterrupt(zk, queuePath);
+        } catch (KeeperException ignore) { }
+        super.destory();
+    }
+
+    @Override
     public boolean contains(Object o) {
         throw new UnsupportedOperationException();
     }

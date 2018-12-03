@@ -15,7 +15,6 @@ public class ReentrantZkLock extends AbstractZkLock {
 
     public ReentrantZkLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {
         super(lockName, connectString);
-        zkPrimitiveSupport = new ZkPrimitiveSupport(zk);
     }
 
     @Override

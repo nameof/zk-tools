@@ -15,7 +15,7 @@ public enum ReadWriteLockState {
     READ {
         @Override
         public void acceptLockState(ReentrantZkReadWriteLock lockContext) {
-            if (lockContext.getLockState() != this && lockContext.getLockState() != NONE)
+            if (lockContext.getLockState() == WRITE)
                 throw new IllegalStateException("unsupport read lock upgrading");
             lockContext.setLockState(this);
         }
@@ -24,7 +24,7 @@ public enum ReadWriteLockState {
     WRITE {
         @Override
         public void acceptLockState(ReentrantZkReadWriteLock lockContext) {
-            if (lockContext.getLockState() != this && lockContext.getLockState() != NONE)
+            if (lockContext.getLockState() == READ)
                 throw new IllegalStateException("unsupport write lock downgrading");
             lockContext.setLockState(this);
         }
