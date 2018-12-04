@@ -1,6 +1,9 @@
 package com.nameof.zookeeper.tools.queue;
 
+import com.nameof.zookeeper.tools.common.ZkContext;
 import org.apache.zookeeper.KeeperException;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,29 +32,27 @@ public class ZkQueueTest {
         });
     }
 
-    @Test
-    public void testAdd() {
-        System.out.println(zkQueue.size());
-        zkQueue.add("a");
-        System.out.println(zkQueue.size());
-        System.out.println(zkQueue.offer("b"));
-        System.out.println(zkQueue.size());
+    @After
+    public void after() {
+        ((ZkContext)zkQueue).destory();
     }
 
     @Test
     public void testRemove() {
-        System.out.println(zkQueue.size());
-        System.out.println(zkQueue.element());
-        System.out.println(zkQueue.size());
-        System.out.println(zkQueue.remove());
-        System.out.println(zkQueue.size());
+        zkQueue.clear();
+        zkQueue.add("testRemove");
+        Assert.assertEquals(1, zkQueue.size());
+        Assert.assertEquals("testRemove", zkQueue.element());
+        Assert.assertEquals(1, zkQueue.size());
+        Assert.assertEquals("testRemove", zkQueue.remove());
+        Assert.assertEquals(0, zkQueue.size());
     }
 
     @Test
     public void testToArray() {
         zkQueue.clear();
-        zkQueue.add("avc");
-        System.out.println(zkQueue.toArray()[0]);
-        System.out.println(zkQueue.toArray(new String[0])[0]);
+        zkQueue.add("testToArray");
+        Assert.assertEquals("testToArray", zkQueue.toArray()[0]);
+        Assert.assertEquals("testToArray", zkQueue.toArray(new String[0])[0]);
     }
 }

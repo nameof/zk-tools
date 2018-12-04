@@ -1,11 +1,15 @@
 package com.nameof.zookeeper.tools.queue;
 
 import com.google.common.collect.Lists;
+import com.nameof.zookeeper.tools.common.ZkContext;
 import org.apache.zookeeper.KeeperException;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -30,17 +34,28 @@ public class ZkBlockingQueueTest {
         });
     }
 
+    @After
+    public void after() {
+        ((ZkContext)zkQueue).destory();
+    }
+
     @Test
     public void testPoll() throws InterruptedException {
+        zkQueue.clear();
         long l = System.currentTimeMillis();
-        Object poll = zkQueue.poll(100, TimeUnit.SECONDS);
-        System.out.println("poll: " + poll);
-        System.out.println(System.currentTimeMillis() - l);
+        Object poll = zkQueue.poll(5, TimeUnit.SECONDS);
+        Assert.assertEquals(null, poll);
+        Assert.assertEquals(5, TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - l));
     }
 
     @Test
     public void testDrainTo() throws InterruptedException {
-        System.out.println(zkQueue.drainTo(Lists.newArrayList(), 10));
+        zkQueue.clear();
+        zkQueue.add("1");
+        zkQueue.add("2");
+        ArrayList<Object> list = Lists.newArrayList();
+        zkQueue.drainTo(list, 1);
+        Assert.assertEquals(1, list.size());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.tools.lock;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -24,7 +25,7 @@ public class ReentrantZkLockTest {
                     lock = new ReentrantZkLock("l1", "172.16.98.129");
                     lock.lockInterruptibly();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Assert.fail(e.getMessage());
                 } finally {
                     if (lock != null)
                         lock.unlock();
@@ -40,9 +41,12 @@ public class ReentrantZkLockTest {
     public void testTryLockWait() throws Exception {
         Lock lock = new ReentrantZkLock("l1", "172.16.98.129");
         long start = System.currentTimeMillis();
-        System.out.println(lock.tryLock(5, TimeUnit.SECONDS));
-        System.out.println(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()-start));
-        lock.unlock();
+        lock.tryLock(5, TimeUnit.SECONDS);
+        try {
+            Assert.assertEquals(5, TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()-start));
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Test
@@ -61,7 +65,6 @@ public class ReentrantZkLockTest {
             final int no = i;
             es.submit(()->{
                 try {
-                    System.out.println("i'm in " + no);
                     Lock lock = new ReentrantZkLock("l1", "172.16.98.129");
                     lock.lock();
                     try {
@@ -71,8 +74,7 @@ public class ReentrantZkLockTest {
                         System.out.println("release lock-" + no);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    return;
+                    Assert.fail(e.getMessage());
                 } finally {
                     quit.countDown();
                 }

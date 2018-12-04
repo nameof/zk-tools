@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.tools.lock;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -16,20 +17,27 @@ public class ReentrantZkReadWriteLockTest {
     @Test
     public void testLockState() throws Exception {
         ReadWriteLock lock = new ReentrantZkReadWriteLock("l2", "172.16.98.129");
-        lock.readLock().lock();
-        lock.writeLock().lock();
+        Throwable t = null;
+        try {
+            lock.readLock().lock();
+            lock.writeLock().lock();
+        } catch (Exception e) {
+            t = e;
+        } finally {
+            lock.readLock().unlock();
+        }
+        Assert.assertTrue(t instanceof IllegalStateException);
     }
 
     @Test
     public void testLock() throws Exception {
-        final int concurrentSize = 30;
+        final int concurrentSize = 10;
         ExecutorService es = Executors.newFixedThreadPool(concurrentSize);
         final CountDownLatch quit = new CountDownLatch(concurrentSize);
         for (int i = 0; i < concurrentSize; i++) {
             final int no = i;
             es.submit(()->{
                 try {
-                    System.out.println("i'm in " + no);
                     ReadWriteLock lock = new ReentrantZkReadWriteLock("l2", "172.16.98.129");
                     Lock rl = no % 2 == 0 ? lock.readLock() : lock.writeLock();
                     String lockName = no % 2 == 0 ? "read" : "write";

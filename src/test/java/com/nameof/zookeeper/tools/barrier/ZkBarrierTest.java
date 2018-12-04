@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.tools.barrier;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Random;
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ZkBarrierTest {
     @Test
-    public void testEnter() throws Exception {
+    public void testEnter() throws InterruptedException {
         final int concurrentSize = 20;
         ExecutorService es = Executors.newFixedThreadPool(concurrentSize);
         final CountDownLatch quit = new CountDownLatch(concurrentSize);
@@ -22,14 +23,11 @@ public class ZkBarrierTest {
             final int no = i;
             es.submit(()->{
                 try {
-                    System.out.println("i'm in " + no);
                     Barrier barrier = new ZkBarrier("b12", "172.16.98.129", 2);
-                    randomWaitAndEnter(barrier);
-                    System.out.println("enter-" + no);
-                    randomWaitAndLeave(barrier);
-                    System.out.println("leave-" + no);
+                    randomWaitAndEnter(barrier, no);
+                    randomWaitAndLeave(barrier, no);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Assert.fail(e.getMessage());
                 } finally {
                     quit.countDown();
                 }
@@ -38,13 +36,15 @@ public class ZkBarrierTest {
         quit.await();
     }
 
-    private void randomWaitAndEnter(Barrier barrier) throws Exception {
+    private void randomWaitAndEnter(Barrier barrier, int no) throws Exception {
         TimeUnit.SECONDS.sleep(new Random(System.currentTimeMillis()).nextInt(2));
         barrier.enter();
+        System.out.println("enter-" + no);
     }
 
-    private void randomWaitAndLeave(Barrier barrier) throws Exception {
+    private void randomWaitAndLeave(Barrier barrier, int no) throws Exception {
         TimeUnit.SECONDS.sleep(new Random(System.currentTimeMillis()).nextInt(2));
         barrier.leave();
+        System.out.println("leave-" + no);
     }
 }
