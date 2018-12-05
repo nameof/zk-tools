@@ -9,7 +9,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 
 import java.io.IOException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
@@ -87,13 +86,12 @@ public abstract class AbstractZkLock extends ZkContext implements Lock, Watcher 
 
     protected void lockInterruptiblyInternal() throws KeeperException, InterruptedException {
         prepareLock();
-        Phaser p = new Phaser(1);
         do {
             String waitTarget = findLockWaitTarget();
             if (getNodeName().equals(waitTarget))
                 return;
 
-            zkPrimitiveSupport.waitNotExists(p, lockPath + "/" + waitTarget);
+            zkPrimitiveSupport.waitNotExists(lockPath + "/" + waitTarget);
         } while (true);
     }
 
@@ -149,14 +147,13 @@ public abstract class AbstractZkLock extends ZkContext implements Lock, Watcher 
 
     protected boolean tryLockInternal(long time, TimeUnit unit) throws KeeperException, InterruptedException, TimeoutException {
         prepareLock();
-        Phaser phaser = new Phaser(1);
         WaitDuration duration = WaitDuration.from(unit.toMillis(time));
         do {
             String waitTarget = findLockWaitTarget();
             if (getNodeName().equals(waitTarget))
                 return true;
 
-            zkPrimitiveSupport.waitNotExists(phaser, lockPath + "/" + waitTarget
+            zkPrimitiveSupport.waitNotExists(lockPath + "/" + waitTarget
                     , duration);
         } while (true);
     }

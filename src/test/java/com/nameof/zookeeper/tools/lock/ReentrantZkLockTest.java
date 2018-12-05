@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.tools.lock;
 
+import com.nameof.zookeeper.tools.common.ZkContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -27,8 +28,10 @@ public class ReentrantZkLockTest {
                 } catch (Exception e) {
                     Assert.fail(e.getMessage());
                 } finally {
-                    if (lock != null)
+                    if (lock != null) {
                         lock.unlock();
+                        ((ZkContext)lock).destory();
+                    }
                 }
             }
         };
@@ -46,6 +49,7 @@ public class ReentrantZkLockTest {
             Assert.assertEquals(5, TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()-start));
         } finally {
             lock.unlock();
+            ((ZkContext)lock).destory();
         }
     }
 
@@ -54,6 +58,7 @@ public class ReentrantZkLockTest {
         Lock lock = new ReentrantZkLock("l1", "172.16.98.129");
         System.out.println(lock.tryLock());
         lock.unlock();
+        ((ZkContext)lock).destory();
     }
 
     @Test
@@ -71,6 +76,7 @@ public class ReentrantZkLockTest {
                         System.out.println("get lock-" + no);
                     } finally {
                         lock.unlock();
+                        ((ZkContext)lock).destory();
                         System.out.println("release lock-" + no);
                     }
                 } catch (Exception e) {

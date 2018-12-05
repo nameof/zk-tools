@@ -5,6 +5,8 @@ import com.nameof.zookeeper.tools.utils.ZkUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -15,6 +17,8 @@ import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
  * @Date: 2018/11/11
  */
 public class ZkContext implements Watcher {
+
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected ZooKeeper zk;
 

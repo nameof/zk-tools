@@ -1,15 +1,14 @@
 package com.nameof.zookeeper.tools.queue;
 
 import com.google.common.base.Preconditions;
-import com.nameof.zookeeper.tools.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.tools.common.WaitDuration;
+import com.nameof.zookeeper.tools.common.ZkPrimitiveSupport;
 import com.nameof.zookeeper.tools.utils.ZkUtils;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -66,9 +65,8 @@ public class ZkBlockingQueue extends AbstractZkBlockingQueue {
     @Override
     public Object take() throws InterruptedException {
         Object o = null;
-        Phaser phaser = new Phaser(1);
         while ((o = poll()) == null) {
-            zkPrimitiveSupport.waitChildren(phaser, queuePath);
+            zkPrimitiveSupport.waitChildren(queuePath);
         }
         return o;
     }
@@ -78,10 +76,9 @@ public class ZkBlockingQueue extends AbstractZkBlockingQueue {
         checkState();
         Object o = null;
         WaitDuration duration = WaitDuration.from(unit.toMillis(timeout));
-        Phaser phaser = new Phaser(1);
         while ((o = poll()) == null) {
             try {
-                zkPrimitiveSupport.waitChildren(phaser, queuePath, duration);
+                zkPrimitiveSupport.waitChildren(queuePath, duration);
             } catch (TimeoutException e) {
                 break;
             }

@@ -1,5 +1,6 @@
 package com.nameof.zookeeper.tools.barrier;
 
+import com.nameof.zookeeper.tools.common.ZkContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,19 +17,21 @@ import java.util.concurrent.TimeUnit;
 public class ZkBarrierTest {
     @Test
     public void testEnter() throws InterruptedException {
-        final int concurrentSize = 20;
+        final int concurrentSize = 5;
         ExecutorService es = Executors.newFixedThreadPool(concurrentSize);
         final CountDownLatch quit = new CountDownLatch(concurrentSize);
         for (int i = 0; i < concurrentSize; i++) {
             final int no = i;
-            es.submit(()->{
+            es.submit(()-> {
+                Barrier barrier = null;
                 try {
-                    Barrier barrier = new ZkBarrier("b12", "172.16.98.129", 2);
+                    barrier = new ZkBarrier("b12", "172.16.98.129", concurrentSize);
                     randomWaitAndEnter(barrier, no);
                     randomWaitAndLeave(barrier, no);
                 } catch (Exception e) {
                     Assert.fail(e.getMessage());
                 } finally {
+                    if (barrier != null) ((ZkContext) barrier).destory();
                     quit.countDown();
                 }
             });

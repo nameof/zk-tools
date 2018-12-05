@@ -25,6 +25,7 @@ public class ReentrantZkReadWriteLockTest {
             t = e;
         } finally {
             lock.readLock().unlock();
+            ((ReentrantZkReadWriteLock)lock).destory();
         }
         Assert.assertTrue(t instanceof IllegalStateException);
     }
@@ -47,9 +48,10 @@ public class ReentrantZkReadWriteLockTest {
                     } finally {
                         rl.unlock();
                         System.out.println("release " + lockName + " lock-" + no);
+                        ((ReentrantZkReadWriteLock)lock).destory();
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Assert.fail(e.getMessage());
                 } finally {
                     quit.countDown();
                 }

@@ -4,7 +4,6 @@ import com.nameof.zookeeper.tools.common.WaitDuration;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -29,9 +28,8 @@ public class BoundedZkBlockingQueue extends ZkBlockingQueue {
 
     @Override
     public void put(Object o) throws InterruptedException {
-        Phaser phaser = new Phaser(1);
         while (!offer(o)) {
-            zkPrimitiveSupport.waitChildren(phaser, queuePath);
+            zkPrimitiveSupport.waitChildren(queuePath);
         }
     }
 
@@ -51,11 +49,10 @@ public class BoundedZkBlockingQueue extends ZkBlockingQueue {
 
     @Override
     public boolean offer(Object o, long timeout, TimeUnit unit) throws InterruptedException {
-        Phaser phaser = new Phaser(1);
         WaitDuration duration = WaitDuration.from(unit.toMillis(timeout));
         while (size() >= size) {
             try {
-                zkPrimitiveSupport.waitChildren(phaser, queuePath, duration);
+                zkPrimitiveSupport.waitChildren(queuePath, duration);
             } catch (TimeoutException e) {
                 return false;
             }

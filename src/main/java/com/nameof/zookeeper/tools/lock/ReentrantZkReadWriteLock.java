@@ -37,7 +37,6 @@ public class ReentrantZkReadWriteLock implements ReadWriteLock {
         ((ZkContext) writeLock).destory();
     }
 
-
     private class ReadLock extends AbstractZkReadWriteLock {
 
         public ReadLock(String lockName, String connectString) throws IOException, InterruptedException, KeeperException {

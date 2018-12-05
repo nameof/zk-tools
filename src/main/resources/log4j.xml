@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration>
+
+    <appender name="Console" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss:SSS}] [%-5p] [method:%l]%n%m%n%n" />
+        </layout>
+    </appender>
+    
+	<logger name="com.nameof" additivity="false">
+		<level value="debug"/>
+		<appender-ref ref="Console"/>
+	</logger>
+
+    <root>
+        <level value ="error"/>
+        <appender-ref ref="Console"/>
+    </root>
+</log4j:configuration>
