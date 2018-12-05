@@ -1,5 +1,5 @@
 # zk-tools
-some tools based on zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock. implement the JDK standard API
+some tools based on zookeeper, queue、blocking queue、barriers、exclusive lock、readwrite lock, election. implement the JDK standard API
 
 # usage
 ```
@@ -68,4 +68,25 @@ some tools based on zookeeper, queue、blocking queue、barriers、exclusive loc
     } finally {
         lockk.unlock();
     }
+```
+
+7.election
+```
+ZkElector ze = new SimpleZkElector(serviceName, connectString, new ZkElectionListener() {
+    @Override
+    public void onMaster() {
+        //master start working
+    }
+    
+    @Override
+    public void onSlave() {
+        //standby
+    }
+    
+    @Override
+    public void onError(Throwable e) {
+        //error
+    }
+});
+ze.joinElection();
 ```
